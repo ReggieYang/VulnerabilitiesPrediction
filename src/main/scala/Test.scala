@@ -1,5 +1,6 @@
 
-import nvd.data.{DBConnection, FeatureExtraction, NvdItemDao, RawDataProcess}
+import lucene.{FeatureExtraction, LuceneUtils}
+import nvd.data.{DBConnection, NvdItemDao, RawDataProcess, SummaryExtraction}
 
 
 /**
@@ -11,6 +12,7 @@ object Test {
   def main(args: Array[String]) = {
     val readRawData = new RawDataProcess()
     val conn = DBConnection.getConnection
+//    val products = readRawData.readProduct(conn)
 
     //    readRawData.readData(conn)
 
@@ -21,9 +23,11 @@ object Test {
     //    nd.saveList(items)
     //    //  save into db
 
-    val fe = new FeatureExtraction(conn)
-    fe.featureByCwe()
-    fe.featureByImpactScore()
+    val se = new SummaryExtraction(conn)
+
+    //    se.featureByCwe()
+    //    se.featureByImpactScore()
+//    se.featureByProduct(products)
 
     //    val x = "cpe:/a:siemens:automation_license_manager:5.3:sp3"
     //    val matchRegex = ".*:(.*):([0-9.]*)"
@@ -34,6 +38,9 @@ object Test {
     //    println(version)
 
     DBConnection.closeConnection
+
+    val fe = new FeatureExtraction
+    fe.summaryToFrequency("data\\featureByCwe\\cwe-16")
 
   }
 }

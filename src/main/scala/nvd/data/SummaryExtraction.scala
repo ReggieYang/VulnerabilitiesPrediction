@@ -7,7 +7,7 @@ import util.Utils._
 /**
   * Created by ReggieYang on 2016/10/23.
   */
-class FeatureExtraction(conn: Connection) {
+class SummaryExtraction(conn: Connection) {
 
 
   def featureByCwe() = {
@@ -40,6 +40,41 @@ class FeatureExtraction(conn: Connection) {
     })
 
 
+  }
+
+  def featureByProduct(products:Array[String]) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into product(name, num) values(?,?)")
+    val sql = "select 'git' as product, count(*) as num, GROUP_CONCAT(v.summary SEPARATOR '\\t') as summary " +
+      "from vulnerability_copy v where v.product like \"git\\t%\" or v.product like \"%\\tgit\" or v.product like \"%\\tgit\\t%\" or v.product like \"%git%\""
+    val matchText = "git"
+
+    var i = 0
+
+    products.foreach(product => {
+      println(i)
+      if (i >= 30000) {
+        val sqlNew = sql.replaceAll(matchText, product)
+        val stmt = conn.createStatement()
+        val rs = stmt.executeQuery(sqlNew)
+        while (rs.next()) {
+          val pathPrefix = "data\\featureByProduct\\"
+          val fileName = product
+          val content = rs.getString("num")
+          cmd.setString(1, fileName)
+          cmd.setString(2, content)
+          cmd.addBatch()
+          //        writeFile(pathPrefix + fileName, content)
+        }
+        conn.commit()
+        cmd.executeBatch()
+      }
+      i = i + 1
+
+    })
+
+
+    cmd.close()
   }
 
 }

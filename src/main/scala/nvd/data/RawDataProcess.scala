@@ -1,6 +1,6 @@
 package nvd.data
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 import java.sql.Connection
 
 import nvd.model.NvdItem
@@ -21,6 +21,26 @@ class RawDataProcess {
       nd.saveList(getItems(filePath))
 
     })
+  }
+
+  def readProduct(conn: Connection): Array[String] = {
+    val yearList = Range(2002, 2017)
+    var pSet = Set[String]()
+
+    yearList.foreach(year => {
+      val filePath = "data\\rawData\\nvdcve-2.0-" + year + ".xml"
+      val temp = getProductList(filePath)
+      pSet = pSet ++ temp
+    })
+
+//    val bw = new BufferedWriter(new FileWriter(new File("data\\productList\\productList")))
+//
+//    pSet.foreach(product => {
+//      bw.write(product + "\n")
+//    })
+//
+//    bw.close()
+    pSet.toArray
   }
 
   def concatElement(entry: Element, name: String, sonName: String, attribute: String = ""): String = {
@@ -57,6 +77,23 @@ class RawDataProcess {
       val cvdItem = NvdItem(id, products, impactScore, reference, cwe, summary)
       cvdItem
     })
+  }
+
+  def getProductList(filePath: String): Set[String] = {
+    val reader = new SAXReader()
+    val document = reader.read(new File(filePath))
+    val node = document.getRootElement
+    var pSet = Set[String]()
+
+    val elements = node.elements().toArray().map(_.asInstanceOf[Element])
+    elements.foreach(entry => {
+      val products2 = concatElement(entry, "vulnerable-software-list", "product")
+      val products = extractProduct(products2)
+      val tempSet = products.split(TabSep).toSet
+      pSet = pSet ++ tempSet
+    })
+
+    pSet
   }
 
   def extractProduct(products: String): String = {
