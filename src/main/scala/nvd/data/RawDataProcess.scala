@@ -14,12 +14,13 @@ import util.Utils._
 class RawDataProcess {
 
   def readData(conn: Connection) = {
-    val yearList = Range(2002, 2017)
+    val yearList = Range(2016, 2017)
     val nd = new NvdItemDao(conn)
     yearList.foreach(year => {
       val filePath = "data\\rawData\\nvdcve-2.0-" + year + ".xml"
-      nd.saveList(getItems(filePath))
-
+      val items = getItems(filePath)
+      nd.saveFeature(items)
+//      nd.saveItem(items)
     })
   }
 
@@ -32,6 +33,8 @@ class RawDataProcess {
       val temp = getProductList(filePath)
       pSet = pSet ++ temp
     })
+
+    println(pSet.toArray.mkString(","))
 
 //    val bw = new BufferedWriter(new FileWriter(new File("data\\productList\\productList")))
 //

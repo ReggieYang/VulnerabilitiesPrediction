@@ -21,11 +21,11 @@ object LuceneUtils {
     words
   }
 
-  def getWordsFrequency(content:String):Map[String, Int] = {
+  def getWordsFrequency(content:String):List[(String, Int)] = {
     countFrequency(getWords(content))
   }
 
-  def countFrequency(words: Array[String]): Map[String, Int] = {
+  def countFrequency(words: Array[String]): List[(String, Int)] = {
     val tempMap = scala.collection.mutable.Map[String, Int]()
     words.foreach(word => {
       tempMap.get(word) match {
@@ -33,7 +33,7 @@ object LuceneUtils {
         case _ => tempMap.put(word, 1)
       }
     })
-    tempMap.toMap
+    tempMap.toMap.toList.sortBy(x => -x._2)
   }
 
   class TSIterator(ts: TokenStream) extends Iterator[String] {
