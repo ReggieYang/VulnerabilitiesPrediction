@@ -1,21 +1,12 @@
 node {
     stage('SCM') {
-        git 'https://github.com/example/MavenDemo.git'
+        git 'https://github.com/ReggieYang/VulnerabilitiesPrediction.git'
     }
-    stage('QA') {
-        sh 'sonar-scanner'
-    }
+
     stage('build') {
-        def mvnHome = tool 'M3'
+        def mvnHome = tool 'Maven3'
         sh "${mvnHome}/bin/mvn -B clean package"
     }
-    stage('deploy') {
-        sh "docker stop my || true"
-        sh "docker rm my || true"
-        sh "docker run --name my -p 11111:8080 -d tomcat"
-        sh "docker cp target/MavenDemo.war my:/usr/local/tomcat/webapps"
-    }
-    stage('results') {
-        archiveArtifacts artifacts: '**/target/*.war', fingerprint: true
-    }
+
+
 }
