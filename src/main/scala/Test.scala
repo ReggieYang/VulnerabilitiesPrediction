@@ -12,6 +12,8 @@ object Test {
   def main(args: Array[String]) = {
     val readRawData = new RawDataProcess()
     val conn = DBConnection.getConnection
+
+    println("haha")
     //    val products = readRawData.readProduct(conn)
 
     //        readRawData.readData(conn)
