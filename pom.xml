@@ -29,7 +29,36 @@
     </dependencies>
          
 <build>
-    <sourceDirectory>src/main/scala</sourceDirectory>
+    <sourceDirectory>src/main</sourceDirectory>
+    <testSourceDirectory>src/test</testSourceDirectory>
+    <plugins>
+        <plugin>
+            <groupId>org.scala-tools</groupId>
+            <artifactId>maven-scala-plugin</artifactId>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>compile</goal>
+                        <goal>testCompile</goal>
+                    </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <scalaVersion>2.11.8</scalaVersion>
+            </configuration>
+        </plugin>
+    </plugins>
 </build>
+<reporting>
+    <plugins>
+        <plugin>
+            <groupId>org.scala-tools</groupId>
+            <artifactId>maven-scala-plugin</artifactId>
+            <configuration>
+                <scalaVersion>2.11.8</scalaVersion>
+            </configuration>
+        </plugin>
+    </plugins>
+</reporting>
          
 </project>
