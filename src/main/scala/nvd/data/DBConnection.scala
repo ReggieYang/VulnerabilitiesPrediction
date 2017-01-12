@@ -13,7 +13,7 @@ object DBConnection {
     //调用Class.forName()方法加载驱动程序
     Class.forName("com.mysql.jdbc.Driver")
     val url = "jdbc:mysql://localhost:3306/nvd"
-    conn = DriverManager.getConnection(url, "root", "")
+    conn = DriverManager.getConnection(url, "root", "root")
     conn
   }
 

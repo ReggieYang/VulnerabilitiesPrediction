@@ -1,18 +1,23 @@
 package lucene
 
-import java.io.StringReader
+import java.io.{File, StringReader}
 
-import org.apache.lucene.analysis.TokenStream
+import org.apache.lucene.analysis.{CharArraySet, TokenStream}
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
+
+import collection.JavaConversions._
 
 /**
   * Created by ReggieYang on 2016/10/24.
   */
 object LuceneUtils {
 
+  val stopWords = new CharArraySet(scala.io.Source.fromFile(new File("data\\lucene\\stopWords")).getLines().toSet, true)
+
+
   def getWords(content:String):Array[String] = {
-    val analyzer = new StandardAnalyzer()
+    val analyzer = new StandardAnalyzer(stopWords)
     val sr = new StringReader(content)
     val ts = analyzer.tokenStream("word", sr)
     val tsI = new TSIterator(ts)

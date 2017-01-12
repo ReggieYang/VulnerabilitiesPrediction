@@ -2,6 +2,7 @@ package nvd.data
 
 import java.sql.Connection
 
+import crawler.HtmlCrawler
 import util.Utils._
 
 /**
@@ -76,7 +77,7 @@ class SummaryExtraction(conn: Connection) {
         //        val content = rs.getString("summary")
         //        writeFile(pathPrefix + fileName, content)
       }
-      if ((i % 1000 == 0)||(i >= 30000)) {
+      if ((i % 1000 == 0) || (i >= 30000)) {
         conn.commit()
         cmd.executeBatch()
       }
@@ -92,7 +93,7 @@ class SummaryExtraction(conn: Connection) {
 
   def featureByProduct() = {
     val sql = "select p.`name` as name, GROUP_CONCAT(summary SEPARATOR '\\t') as summary from feature f, product p where f.id = p.vul group by p.`name`"
-
+    val cmd = conn.prepareStatement("insert into product(name, vul) values(?,?)")
     val stmt = conn.createStatement()
     val rs = stmt.executeQuery(sql)
     var i = 0
@@ -107,4 +108,40 @@ class SummaryExtraction(conn: Connection) {
     }
 
   }
+
+
+  def crawlReferenceData() = {
+    val htmlCrawler = new HtmlCrawler
+    htmlCrawler.init()
+    conn.setAutoCommit(false)
+    val sql = "select id, reference from feature f where id like '%-2005-%'"
+    val cmd = conn.prepareStatement("update feature set reference = ? where id = ?")
+    val rs = conn.createStatement().executeQuery(sql)
+    var i = 0
+    while (rs.next()) {
+      i = i + 1
+      if (i % 10 == 0) {
+        println("index: " + i)
+      }
+      val summary = htmlCrawler.crawlDescription(rs.getString("reference"))
+      cmd.setString(2, rs.getString("id"))
+      cmd.setString(1, summary)
+      cmd.addBatch()
+
+      if (i % 10 == 0) {
+        cmd.executeBatch()
+        conn.commit()
+        htmlCrawler.close()
+        htmlCrawler.init()
+      }
+
+    }
+
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+
+    htmlCrawler.close()
+  }
+
 }
