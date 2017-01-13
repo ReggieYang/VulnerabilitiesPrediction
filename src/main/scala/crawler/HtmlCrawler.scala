@@ -1,7 +1,8 @@
 package crawler
 
 import com.gargoylesoftware.htmlunit.WebClient
-import com.gargoylesoftware.htmlunit.html.{HtmlPage, HtmlParagraph}
+import com.gargoylesoftware.htmlunit.html.{DomElement, HtmlPage, HtmlParagraph}
+import org.w3c.dom.html.HTMLElement
 
 
 /**
@@ -35,26 +36,29 @@ class HtmlCrawler {
     val domain = url.replaceAll("((?:http|ftp)://.*?)/.*", "$1")
     siteXpathMap.get(domain) match {
       case None => {
-        if(domain.startsWith("http://")||domain.startsWith("ftp://")) ""
+        if (domain.startsWith("http://") || domain.startsWith("ftp://")) ""
         else domain
       }
       case Some(xpath) => {
-        var page:HtmlPage = null
+        var page: HtmlPage = null
         try {
           page = webClient.getPage(url)
         }
         catch {
-          case (e:Exception) => println("hahah 404")
+          case (e: Exception) => println("hahah 404")
           case _ =>
         }
-          if ((page == null)||page.getByXPath(xpath).isEmpty) ""
-          else {
-            val des = page.getByXPath(xpath).get(0)
-            des match {
-              case des: HtmlParagraph => des.asText()
-              case _ => des.toString
-            }
+        val newXpath = xpath.split("&")(0)
+        val attribute = if(xpath.contains("&")) xpath.split("&")(1) else ""
+
+        if ((page == null) || page.getByXPath(newXpath).isEmpty) ""
+        else {
+          val des = page.getByXPath(newXpath).get(0)
+          des match {
+            case des: DomElement => getContent(des, attribute)
+            case _ => des.toString
           }
+        }
 
 
       }
@@ -62,5 +66,6 @@ class HtmlCrawler {
 
   }
 
+  def getContent(ele: DomElement, attr: String) = if (attr.isEmpty) ele.asText() else ele.getAttribute(attr)
 
 }

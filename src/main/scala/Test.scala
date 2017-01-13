@@ -1,6 +1,6 @@
 
 import com.gargoylesoftware.htmlunit.WebClient
-import com.gargoylesoftware.htmlunit.html.{HtmlDivision, HtmlPage, HtmlParagraph}
+import com.gargoylesoftware.htmlunit.html.{HtmlDivision, HtmlMeta, HtmlPage, HtmlParagraph}
 import crawler.HtmlCrawler
 import lucene.{FeatureExtraction, LuceneUtils}
 import nvd.data.{DBConnection, NvdItemDao, RawDataProcess, SummaryExtraction}
@@ -34,13 +34,13 @@ object Test {
     //    fe.summaryToFrequencyDir("data\\test")
 
 
-    //    val webClient = new WebClient()
-    //    webClient.getOptions.setCssEnabled(false)
-    //    webClient.getOptions.setJavaScriptEnabled(false)
-    //    val page: HtmlPage = webClient.getPage("http://www.kb.cert.org/vuls/id/619767")
-    //    val des = page.getByXPath("//div[@id='vulnerability-note-content']//table[1]//p").get(0).asInstanceOf[HtmlParagraph]
-    //    println(des.asXml())
-    //    webClient.closeAllWindows()
+//        val webClient = new WebClient()
+//        webClient.getOptions.setCssEnabled(false)
+//        webClient.getOptions.setJavaScriptEnabled(false)
+//        val page: HtmlPage = webClient.getPage("https://ics-cert.us-cert.gov/advisories/ICSA-12-205-01")
+//        val des = page.getByXPath("//meta[@name='description']").get(0).asInstanceOf[HtmlMeta]
+//        println(des.asText())
+//        webClient.closeAllWindows()
 
 
 
