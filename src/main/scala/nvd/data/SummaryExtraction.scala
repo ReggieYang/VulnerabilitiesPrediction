@@ -114,7 +114,7 @@ class SummaryExtraction(conn: Connection) {
     val htmlCrawler = new HtmlCrawler
     htmlCrawler.init()
     conn.setAutoCommit(false)
-    val sql = "select id, reference from feature f where id like '%-2006-%'"
+    val sql = "select id, reference from feature f"
     val cmd = conn.prepareStatement("update feature set reference = ? where id = ?")
     val rs = conn.createStatement().executeQuery(sql)
     var i = 0

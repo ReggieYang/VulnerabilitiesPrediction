@@ -1,6 +1,6 @@
 
 import com.gargoylesoftware.htmlunit.WebClient
-import com.gargoylesoftware.htmlunit.html.{HtmlDivision, HtmlMeta, HtmlPage, HtmlParagraph}
+import com.gargoylesoftware.htmlunit.html._
 import crawler.HtmlCrawler
 import lucene.{FeatureExtraction, LuceneUtils}
 import nvd.data.{DBConnection, NvdItemDao, RawDataProcess, SummaryExtraction}
@@ -34,23 +34,28 @@ object Test {
     //    fe.summaryToFrequencyDir("data\\test")
 
 
-//        val webClient = new WebClient()
-//        webClient.getOptions.setCssEnabled(false)
-//        webClient.getOptions.setJavaScriptEnabled(false)
-//        val page: HtmlPage = webClient.getPage("https://ics-cert.us-cert.gov/advisories/ICSA-12-205-01")
-//        val des = page.getByXPath("//meta[@name='description']").get(0).asInstanceOf[HtmlMeta]
-//        println(des.asText())
-//        webClient.closeAllWindows()
+//    val keyword = "man in the suit"
+//
+//    val webClient = new WebClient()
+//    webClient.getOptions.setCssEnabled(false)
+//    webClient.getOptions.setJavaScriptEnabled(false)
+//    val page: HtmlPage = webClient.getPage("https://www.baidu.com/s?wd=" + keyword)
+//    val res = page.getByXPath("//a[@class='c-showurl']").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+//    res.foreach(println(_))
+//    webClient.closeAllWindows()
 
 
 
-    val s = new SummaryExtraction(DBConnection.getConnection)
-    s.crawlReferenceData()
+    val hc = new HtmlCrawler
+    hc.init()
+    println(hc.getYahooRes("reggie yang").mkString("\n"))
+    hc.close()
 
-    DBConnection.closeConnection
 
-
-
+    //    val s = new SummaryExtraction(DBConnection.getConnection)
+    //    s.crawlReferenceData()
+    //
+    //    DBConnection.closeConnection
 
 
   }
