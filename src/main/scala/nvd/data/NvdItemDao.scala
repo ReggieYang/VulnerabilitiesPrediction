@@ -2,30 +2,29 @@ package nvd.data
 
 import java.sql.Connection
 
-import nvd.model.NvdItem
+import nvd.model.{NvdItem, ProductSearch}
 import util.Utils
 
 /**
   * Created by ReggieYang on 2016/10/22.
   */
-class NvdItemDao(conn: Connection) {
-
+case class NvdItemDao(conn: Connection) {
 
   def saveFeature(items: Array[NvdItem]) = {
     conn.setAutoCommit(false)
     val cmd = conn.prepareStatement("insert into feature(id, reference, summary) values(?,?,?)")
 
-//    var i = 0
+    //    var i = 0
     items.foreach(item => {
       cmd.setString(1, item.id)
       cmd.setString(2, item.reference)
       cmd.setString(3, item.summary)
       cmd.addBatch()
-//      i = i + 1
-//      if (i % 1000 == 0) {
-//        conn.commit()
-//        cmd.executeBatch()
-//      }
+      //      i = i + 1
+      //      if (i % 1000 == 0) {
+      //        conn.commit()
+      //        cmd.executeBatch()
+      //      }
     })
 
     cmd.executeBatch()
@@ -34,29 +33,82 @@ class NvdItemDao(conn: Connection) {
 
   }
 
+  def saveSearchRes(products: Array[ProductSearch]) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into product_search(product, res) values(?,?)")
+    var i = 0
+    products.foreach(res => {
+      cmd.setString(1, res.product)
+      cmd.setString(2, res.res.mkString("\t"))
+      cmd.addBatch()
+      i = i + 1
+
+      if (i % 1000 == 0) {
+        cmd.executeBatch()
+        conn.commit()
+      }
+    })
+
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+  }
+
+  def saveSearchRes(product: ProductSearch) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into product_search(product, res) values(?,?)")
+    cmd.setString(1, product.product)
+    cmd.setString(2, product.res.mkString("\t"))
+    cmd.addBatch()
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+  }
+
+  def saveProduct(items: Array[NvdItem]) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into product_version(vul, product) values(?,?)")
+    var i = 0
+    items.foreach(item => {
+      item.product.split("\t").foreach(product => {
+        cmd.setString(1, item.id)
+        cmd.setString(2, product)
+        cmd.addBatch()
+        i = i + 1
+
+        if (i % 1000 == 0) {
+          cmd.executeBatch()
+          conn.commit()
+        }
+      })
+    })
+
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+  }
+
   def saveItem(items: Array[NvdItem]) = {
     conn.setAutoCommit(false)
-    val cmd = conn.prepareStatement("insert into vulnerability(id, product, impact_score, cwe) values(?,?,?,?)")
+    val cmd = conn.prepareStatement("insert into vulnerability2(id, product, impact_score, cwe) values(?,?,?,?)")
 
-//    var i = 0
+    var i = 0
     items.foreach(item => {
+
       cmd.setString(1, item.id)
-//      println(item.id)
-//      println(item.product)
       cmd.setString(2, item.product)
       cmd.setDouble(3, item.impactScore)
       cmd.setString(4, item.cwe)
       cmd.addBatch()
-//      i = i + 1
-//      if (i % 1000 == 0) {
-//        conn.commit()
-//        cmd.executeBatch()
-//      }
+      i = i + 1
+      if (i % 1000 == 0) {
+        cmd.executeBatch()
+        conn.commit()
+      }
     })
 
-
-    conn.commit()
     cmd.executeBatch()
+    conn.commit()
     cmd.close()
 
   }

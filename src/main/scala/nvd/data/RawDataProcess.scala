@@ -20,7 +20,7 @@ class RawDataProcess {
       val filePath = "data\\rawData\\nvdcve-2.0-" + year + ".xml"
       val items = getItems(filePath)
       nd.saveFeature(items)
-//      nd.saveItem(items)
+      //      nd.saveItem(items)
     })
   }
 
@@ -36,13 +36,13 @@ class RawDataProcess {
 
     println(pSet.toArray.mkString(","))
 
-//    val bw = new BufferedWriter(new FileWriter(new File("data\\productList\\productList")))
-//
-//    pSet.foreach(product => {
-//      bw.write(product + "\n")
-//    })
-//
-//    bw.close()
+    //    val bw = new BufferedWriter(new FileWriter(new File("data\\productList\\productList")))
+    //
+    //    pSet.foreach(product => {
+    //      bw.write(product + "\n")
+    //    })
+    //
+    //    bw.close()
     pSet.toArray
   }
 
@@ -73,6 +73,7 @@ class RawDataProcess {
       val id = entry.element("cve-id").getStringValue
       val products2 = concatElement(entry, "vulnerable-software-list", "product")
       val products = extractProduct(products2)
+      if (products.length > 20000) println(id + ": " + products.length)
       val impactScore = if (entry.element("cvss") != null) entry.element("cvss").element("base_metrics").element("score").getStringValue.toDouble else 0d
       val cwe = if (entry.element("cwe") != null) entry.element("cwe").attribute("id").getValue else EmptyString
       val reference = concatElement(entry, "references", "reference", "href")
@@ -104,7 +105,7 @@ class RawDataProcess {
     productList.map(product => {
       if (!product.isEmpty) {
         val title = product.split(":")
-        if (title.length >= 4) title(3) else title(title.length - 1)
+        if (title.length >= 5) title(3) + " " + title(4) else title(title.length - 1)
       }
     }).toSet.mkString(TabSep)
   }

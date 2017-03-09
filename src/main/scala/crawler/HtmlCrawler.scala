@@ -4,11 +4,13 @@ import com.gargoylesoftware.htmlunit.WebClient
 import com.gargoylesoftware.htmlunit.html._
 import org.w3c.dom.html.HTMLElement
 
+import scala.util.{Failure, Success, Try}
+
 
 /**
   * Created by ReggieYang on 2017/1/8.
   */
-class HtmlCrawler {
+class HtmlCrawler extends Serializable{
 
   var siteXpathMap: Map[String, String] = null
   var webClient: WebClient = null
@@ -20,9 +22,8 @@ class HtmlCrawler {
     webClient.getOptions.setJavaScriptEnabled(false)
   }
 
-  def close() = {
-    webClient.closeAllWindows()
-  }
+  def close() = webClient.closeAllWindows()
+
 
   def getSiteXpathMap: Map[String, String] = {
     val delimiter = "\t"
@@ -64,7 +65,7 @@ class HtmlCrawler {
 
   def getBaiduRes(kw: String): Array[String] = {
     val page: HtmlPage = webClient.getPage("https://www.baidu.com/s?wd=" + kw)
-    page.getByXPath("//a[@class='c-showurl']").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+    page.getByXPath("//B[@class='c-showurl']").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
   }
 
   def getYahooRes(kw: String): Array[String] = {
@@ -73,8 +74,38 @@ class HtmlCrawler {
   }
 
   def getBingRes(kw: String): Array[String] = {
-    val page: HtmlPage = webClient.getPage("http://bing.com/search?q=" + kw)
+    val page: HtmlPage = webClient.getPage(s"http://bing.com/search?q=$kw&intlF=1&FORM=TIPEN1")
     page.getByXPath("//cite").toArray().map(_.asInstanceOf[HtmlCitation].asText())
   }
+
+  def crawlPage(urls: Array[String], length: Int = -1): Array[String] = {
+    val urlRegex = ".*".r
+    val validUrls = urls.filter(url => urlRegex.findFirstIn(url).nonEmpty)
+
+    val urlsLen = if (length < 0) validUrls
+    else if (length <= validUrls.length) validUrls.take(length)
+    else {
+      urls ++ Array.fill(length - validUrls.length)("")
+    }
+
+    urlsLen.map(url => {
+      println(s"crawling page: $url")
+      Try {
+        val urlWithProtocol = if (url.startsWith("http")) url else s"https://$url"
+        val page: HtmlPage = webClient.getPage(urlWithProtocol)
+        page
+      } match {
+        case Success(p) => {
+          if (p == null || p.getBody == null || p.getBody.asText() == null) null
+          else p.getBody.asText().replaceAll("\\s+", " ")
+        }
+        case Failure(f) => {
+          f.printStackTrace()
+          null
+        }
+      }
+    }).filter(_ != null)
+  }
+
 
 }
