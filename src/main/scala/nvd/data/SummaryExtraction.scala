@@ -1,8 +1,13 @@
 package nvd.data
 
+import java.io.File
 import java.sql.Connection
 
 import crawler.HtmlCrawler
+import org.apache.commons.io.FileUtils
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
+import org.deeplearning4j.text.tokenization.tokenizer.preprocessor.CommonPreprocessor
+import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory
 import util.Utils._
 
 /**
@@ -22,6 +27,60 @@ class SummaryExtraction(conn: Connection) {
       val content = rs.getString("summary")
       writeFile(pathPrefix + cwe, content)
     }
+  }
+
+  def writeSummaryByProduct() = {
+    val sql = "select pv.product, GROUP_CONCAT(f.summary separator ' ') as summary " +
+      "from product_version pv, feature f where f.id = pv.vul GROUP BY pv.product"
+    //    val sql2 = "select pv.product, GROUP_CONCAT(f.summary separator ' ') as summary " +
+    //      "from product_version pv, feature f where f.id = pv.vul and pv.product like 'freebsd%' GROUP BY pv.product"
+    val sql3 = "select * from product_summary"
+    val stmt = conn.createStatement()
+    val rs = stmt.executeQuery(sql3)
+    var i = 0
+    while (rs.next()) {
+      val product = rs.getString("product")
+      val summary = rs.getString("summary")
+      i = i + 1
+      if (i % 100 == 0) println(s"index: $i, product: $product")
+      if (!product.isEmpty) {
+        FileUtils.write(new File(s"E:\\secdata\\summaryByProduct\\$product"), summary)
+      }
+    }
+  }
+
+  def writeVectors() = {
+    val pvPath: String = "D:\\workspace\\VulnerabilitiesPrediction\\data\\word2vec\\summary.pv"
+    val t = new DefaultTokenizerFactory()
+    t.setTokenPreProcessor(new CommonPreprocessor())
+    val vec = WordVectorSerializer.readParagraphVectors(pvPath)
+    vec.setTokenizerFactory(t)
+
+    val sql3 = "select * from product_summary"
+    val stmt = conn.createStatement()
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into product_vector(product, vector) values(?,?)")
+    val rs = stmt.executeQuery(sql3)
+    var i = 0
+    while (rs.next()) {
+      val product = rs.getString("product")
+      val summary = rs.getString("summary")
+      i = i + 1
+      if (i % 100 == 0) println(s"index: $i, product: $product")
+      cmd.setString(1, product)
+      cmd.setString(2, vec.inferVector(summary).toString)
+      cmd.addBatch()
+
+      if (i % 1000 == 0) {
+        cmd.executeBatch()
+        conn.commit()
+      }
+    }
+
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+
   }
 
   def featureByImpactScore() = {
@@ -143,5 +202,6 @@ class SummaryExtraction(conn: Connection) {
 
     htmlCrawler.close()
   }
+
 
 }

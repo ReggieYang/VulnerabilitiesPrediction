@@ -4,6 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 import java.sql.Connection
 
 import nvd.model.NvdItem
+import org.apache.commons.io.FileUtils
 import org.dom4j.Element
 import org.dom4j.io.SAXReader
 import util.Utils._
@@ -24,8 +25,8 @@ class RawDataProcess {
     })
   }
 
-  def readProduct(conn: Connection): Array[String] = {
-    val yearList = Range(2002, 2017)
+  def readProduct(): Array[String] = {
+    val yearList = Range(2002, 2018)
     var pSet = Set[String]()
 
     yearList.foreach(year => {
@@ -73,7 +74,7 @@ class RawDataProcess {
       val id = entry.element("cve-id").getStringValue
       val products2 = concatElement(entry, "vulnerable-software-list", "product")
       val products = extractProduct(products2)
-      if (products.length > 20000) println(id + ": " + products.length)
+      //      if (products.length > 20000) println(id + ": " + products.length)
       val impactScore = if (entry.element("cvss") != null) entry.element("cvss").element("base_metrics").element("score").getStringValue.toDouble else 0d
       val cwe = if (entry.element("cwe") != null) entry.element("cwe").attribute("id").getValue else EmptyString
       val reference = concatElement(entry, "references", "reference", "href")
@@ -109,6 +110,16 @@ class RawDataProcess {
       }
     }).toSet.mkString(TabSep)
   }
+
+  def writeSummary(rdp: RawDataProcess) = {
+    Range(2002, 2018).foreach(year => {
+      rdp.getItems(s"data\\rawData\\nvdcve-2.0-$year.xml").foreach(item => {
+        FileUtils.write(new File("E:\\secdata\\summaryById\\" + item.id), item.summary)
+      })
+    })
+  }
+
+
 
 
 }

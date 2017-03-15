@@ -113,4 +113,8 @@ case class NvdItemDao(conn: Connection) {
 
   }
 
+  def getProductVul() = {
+
+  }
+
 }
