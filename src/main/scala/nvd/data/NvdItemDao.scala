@@ -2,7 +2,7 @@ package nvd.data
 
 import java.sql.Connection
 
-import nvd.model.{NvdItem, ProductSearch}
+import nvd.model.{NvdItem, ProductSearch, SearchRes, SearchRes2}
 import util.Utils
 
 /**
@@ -115,6 +115,50 @@ case class NvdItemDao(conn: Connection) {
 
   def getProductVul() = {
 
+  }
+
+  def saveSearchSiteRes(results: Array[SearchRes]) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into search_res(url, res) values(?, ?)")
+    var i = 0
+    results.foreach(res => {
+      cmd.setString(1, res.url)
+      cmd.setString(2, res.res)
+      cmd.addBatch()
+//      i = i + 1
+//
+//      if (i % 1 == 0) {
+//        cmd.executeBatch()
+//        conn.commit()
+//      }
+    })
+
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+  }
+
+
+  def saveSearchSiteRes(res: SearchRes) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("insert into search_res(url, res) values(?, ?)")
+    cmd.setString(1, res.url)
+    cmd.setString(2, res.res)
+    cmd.addBatch()
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+  }
+
+  def saveSearchSiteRes(res: SearchRes2) = {
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement("update search_res2 set res = ? where id = ?")
+    cmd.setString(1, res.res)
+    cmd.setInt(2, res.id)
+    cmd.addBatch()
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
   }
 
 }

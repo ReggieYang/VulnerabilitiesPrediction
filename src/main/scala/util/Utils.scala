@@ -24,3 +24,10 @@ class ResultSetIt(rs: ResultSet) extends Iterator[String] {
 
   override def next(): String = rs.getString(1)
 }
+
+class ResultSetIt2(rs: ResultSet) extends Iterator[Array[String]] {
+  override def hasNext: Boolean = rs.next()
+
+  override def next(): Array[String] = Range(1, rs.getMetaData.getColumnCount + 1).map(i => rs.getString(i)).toArray
+}
+

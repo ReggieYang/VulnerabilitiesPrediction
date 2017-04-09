@@ -27,76 +27,8 @@ class HtmlCrawler extends Serializable {
     webClient = new WebClient()
     webClient.getOptions.setCssEnabled(false)
     webClient.getOptions.setJavaScriptEnabled(false)
-    webClient.getOptions.getProxyConfig.setProxyPort(54525)
+    webClient.getOptions.getProxyConfig.setProxyPort(1080)
     webClient.getOptions.getProxyConfig.setProxyHost("127.0.0.1")
-//    webClient.setIncorrectnessListener(new IncorrectnessListener() {
-//
-//      @Override
-//      def notify(arg0:String, arg1:Object) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//    })
-//    webClient.setCssErrorHandler(new ErrorHandler() {
-//
-//      @Override
-//      def warning( exception:CSSParseException) throws CSSException {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      @Override
-//      public void fatalError(CSSParseException exception) throws CSSException {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      @Override
-//      public void error(CSSParseException exception) throws CSSException {
-//        // TODO Auto-generated method stub
-//
-//      }
-//    });
-//    webClient.setJavaScriptErrorListener(new JavaScriptErrorListener() {
-//
-//      @Override
-//      public void timeoutError(HtmlPage arg0, long arg1, long arg2) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      @Override
-//      public void scriptException(HtmlPage arg0, ScriptException arg1) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      @Override
-//      public void malformedScriptURL(HtmlPage arg0, String arg1, MalformedURLException arg2) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      @Override
-//      public void loadScriptError(HtmlPage arg0, URL arg1, Exception arg2) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//    });
-//    webClient.setHTMLParserListener(new HTMLParserListener() {
-//
-//      @Override
-//      public void warning(String arg0, URL arg1, int arg2, int arg3, String arg4) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//
-//      @Override
-//      public void error(String arg0, URL arg1, int arg2, int arg3, String arg4) {
-//        // TODO Auto-generated method stub
-//
-//      }
-//    });
 
   }
 
@@ -113,7 +45,9 @@ class HtmlCrawler extends Serializable {
 
   def crawlDescription(url: String): String = {
     val domain = url.replaceAll("((?:http|ftp)://.*?)/.*", "$1")
+    //利用正则表达式从完整的url中获得网站的域名
     siteXpathMap.get(domain) match {
+      //从siteXpathMap中根据网站域名得到待提取内容对应的Xpath
       case None => url
       case Some(xpath) => {
         var page: HtmlPage = null
@@ -121,7 +55,7 @@ class HtmlCrawler extends Serializable {
           page = webClient.getPage(url)
         }
         catch {
-          case (e: Exception) => println("hahah 404")
+          case (e: Exception) => e.printStackTrace()
           case _ =>
         }
         val newXpath = xpath.split("&")(0)
@@ -132,6 +66,7 @@ class HtmlCrawler extends Serializable {
           val des = page.getByXPath(newXpath).get(0)
           des match {
             case des: DomElement => getContent(des, attribute)
+            //利用XPath得到描述信息所在的标签，如果有必要，提取所需的属性，否则直接提取内容
             case _ => des.toString
           }
         }
@@ -152,8 +87,36 @@ class HtmlCrawler extends Serializable {
   }
 
   def getBingRes(kw: String): Array[String] = {
-    val page: HtmlPage = webClient.getPage(s"http://bing.com/search?q=$kw&intlF=1&FORM=TIPEN1")
-    page.getElementsByTagName("cite").toArray().map(_.asInstanceOf[HtmlCitation].asText())
+    val kw2 = kw.replaceAll(" ", "+")
+    val page: HtmlPage = webClient.getPage(s"http://global.bing.com/search?q=$kw2&go=Search&qs=bs&setmkt=en-us&setlang=en-us&FORM=SECNEN")
+
+    //    val page: HtmlPage = webClient.getPage(s"http://www.bing.com/search?q=$kw&go=Search&qs=bs&form=QBRE")
+
+
+    println(s"bingUrl: http://bing.com/search?q=$kw&intlF=1&FORM=TIPEN1")
+    page.getByXPath("//li[@class='b_algo']//h2//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+    //    page.getElementsByTagName("cite").toArray().map(_.asInstanceOf[HtmlCitation].asText())
+  }
+
+
+  def crawlPage(url: String): String = {
+    println(s"crawling page: $url")
+    try {
+      //      val urlWithProtocol = if (url.startsWith("http")) url else s"http://$url"
+      val page: HtmlPage = webClient.getPage(url)
+      if (page == null || page.getBody == null || page.getBody.asText() == null) null
+      else page.getBody.asText().replaceAll("\\s+", " ")
+    }
+    catch {
+      case e: Throwable => {
+        webClient.closeAllWindows()
+        init()
+        e.printStackTrace()
+        println("catch an exception")
+        ""
+      }
+    }
+
   }
 
   def crawlPage(urls: Array[String], length: Int = -1): Array[String] = {

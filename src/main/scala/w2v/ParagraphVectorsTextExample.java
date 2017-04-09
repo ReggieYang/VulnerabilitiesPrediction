@@ -34,9 +34,9 @@ public class ParagraphVectorsTextExample {
     private static final Logger log = LoggerFactory.getLogger(ParagraphVectorsTextExample.class);
 
     public static void main(String[] args) throws Exception {
-        ClassPathResource resource = new ClassPathResource("/raw_sentences.txt");
-        File file = resource.getFile();
-        SentenceIterator iter = new BasicLineIterator(file);
+//        ClassPathResource resource = new ClassPathResource("/raw_sentences.txt");
+//        File file = resource.getFile();
+        SentenceIterator iter = new BasicLineIterator(new File("data\\desc.txt"));
 
         AbstractCache<VocabWord> cache = new AbstractCache<>();
 
@@ -66,6 +66,8 @@ public class ParagraphVectorsTextExample {
                 .build();
 
         vec.fit();
+
+
 
         /*
             In training corpus we have few lines that contain pretty close words invloved.

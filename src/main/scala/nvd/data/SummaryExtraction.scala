@@ -83,6 +83,49 @@ class SummaryExtraction(conn: Connection) {
 
   }
 
+  def writeVectors(summaryTableName: String) = {
+    val pvPath: String = "D:\\workspace\\VulnerabilitiesPrediction\\data\\word2vec\\summary.pv"
+    val t = new DefaultTokenizerFactory()
+    t.setTokenPreProcessor(new CommonPreprocessor())
+    val vec = WordVectorSerializer.readParagraphVectors(pvPath)
+    vec.setTokenizerFactory(t)
+    val dropTable = s"DROP TABLE IF EXISTS `${summaryTableName}_vector`;"
+    val createTable = s"CREATE TABLE `${summaryTableName}_vector` (`id` int(11) NOT NULL AUTO_INCREMENT," +
+      "`product` varchar(255) DEFAULT NULL, `vector` mediumtext,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8"
+    val stmt2 = conn.createStatement()
+    stmt2.executeUpdate(dropTable)
+    stmt2.executeUpdate(createTable)
+
+    val sql3 = s"select product, res from $summaryTableName where id <= 20"
+    val stmt = conn.createStatement()
+    conn.setAutoCommit(false)
+    val cmd = conn.prepareStatement(s"insert into ${summaryTableName}_vector(product, vector) values(?,?)")
+    val rs = stmt.executeQuery(sql3)
+    var i = 0
+    println("Begin to infer vectors")
+    while (rs.next()) {
+      val product = rs.getString("product")
+      val summary = rs.getString("res")
+      i = i + 1
+      println(s"index: $i, product: $product")
+      val vector = vec.inferVector(summary).toString.drop(1).dropRight(1)
+      println(s"vector: $vector")
+      cmd.setString(1, product)
+      cmd.setString(2, vector)
+      cmd.addBatch()
+
+      if (i % 100 == 0) {
+        cmd.executeBatch()
+        conn.commit()
+      }
+    }
+
+    cmd.executeBatch()
+    conn.commit()
+    cmd.close()
+
+  }
+
   def featureByImpactScore() = {
     val begin = "SELECT GROUP_CONCAT(summary Separator'\\t') as summary from feature f, vulnerability v " +
       "where f.id = v.id and v.impact_score >= "

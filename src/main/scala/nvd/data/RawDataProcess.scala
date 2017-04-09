@@ -1,12 +1,13 @@
 package nvd.data
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.{BufferedWriter, File, FileWriter, PrintWriter}
 import java.sql.Connection
 
 import nvd.model.NvdItem
 import org.apache.commons.io.FileUtils
 import org.dom4j.Element
 import org.dom4j.io.SAXReader
+import util.{ResultSetIt, ResultSetIt2}
 import util.Utils._
 
 /**
@@ -68,18 +69,21 @@ class RawDataProcess {
     val reader = new SAXReader()
     val document = reader.read(new File(filePath))
     val node = document.getRootElement
+    //初始化dom4j作为xml解析器，读取待分析的文档
 
     val elements = node.elements().toArray().map(_.asInstanceOf[Element])
     elements.map(entry => {
       val id = entry.element("cve-id").getStringValue
       val products2 = concatElement(entry, "vulnerable-software-list", "product")
       val products = extractProduct(products2)
+      //将vulnerable-software-list标签下的product标签所有内容拼接，得到受漏洞影响的软件列表
       //      if (products.length > 20000) println(id + ": " + products.length)
       val impactScore = if (entry.element("cvss") != null) entry.element("cvss").element("base_metrics").element("score").getStringValue.toDouble else 0d
       val cwe = if (entry.element("cwe") != null) entry.element("cwe").attribute("id").getValue else EmptyString
       val reference = concatElement(entry, "references", "reference", "href")
       val summary = entry.element("summary").getStringValue
       val cvdItem = NvdItem(id, products, impactScore, reference, cwe, summary)
+      //获取漏洞严重程度，漏洞类型，漏洞描述信息等，封装成对象，准备存储在数据库中
       cvdItem
     })
   }
@@ -120,6 +124,37 @@ class RawDataProcess {
   }
 
 
+  def writeVulAmount(conn: Connection) = {
+    val sql = s"SELECT * from vul_amount"
+    val stmt = conn.createStatement()
+    val rs = stmt.executeQuery(sql)
+    val data = new ResultSetIt2(rs).toArray
+    data
+  }
 
+  def getSearchSite(conn: Connection) = {
+    val sql = s"select distinct res from product_search"
+    val stmt = conn.createStatement()
+    val rs = stmt.executeQuery(sql)
+    new ResultSetIt(rs).toArray
+  }
+
+  def getSearchSite2(conn: Connection) = {
+    val sql = s"select id, url from search_res2"
+    val stmt = conn.createStatement()
+    val rs = stmt.executeQuery(sql)
+    new ResultSetIt2(rs).toArray
+  }
+
+  def writeDesctoFile(conn: Connection) = {
+    val sql = s"select sr.res from search_res2 sr"
+    val pw = new PrintWriter("data\\desc.txt")
+    val stmt = conn.createStatement()
+    val rs = stmt.executeQuery(sql)
+    while(rs.next()) {
+      pw.println(rs.getString(1))
+    }
+    pw.close()
+  }
 
 }

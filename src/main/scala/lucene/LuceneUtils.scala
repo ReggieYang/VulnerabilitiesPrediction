@@ -1,6 +1,6 @@
 package lucene
 
-import java.io.{File, StringReader}
+import java.io.{File, FileReader, StringReader}
 
 import org.apache.lucene.analysis.{CharArraySet, TokenStream}
 import org.apache.lucene.analysis.standard.StandardAnalyzer
@@ -16,7 +16,7 @@ object LuceneUtils {
   val stopWords = new CharArraySet(scala.io.Source.fromFile(new File("data\\lucene\\stopWords")).getLines().toSet, true)
 
 
-  def getWords(content:String):Array[String] = {
+  def getWords(content: String): Array[String] = {
     val analyzer = new StandardAnalyzer(stopWords)
     val sr = new StringReader(content)
     val ts = analyzer.tokenStream("word", sr)
@@ -26,8 +26,24 @@ object LuceneUtils {
     words
   }
 
-  def getWordsFrequency(content:String):List[(String, Int)] = {
-    countFrequency(getWords(content))
+  def getWordsFromFile(filePath: String): Array[String] = {
+    val analyzer = new StandardAnalyzer(stopWords)
+    val fr = new FileReader(filePath)
+    val ts = analyzer.tokenStream("word", fr)
+    val tsI = new TSIterator(ts)
+    val words = tsI.toArray
+    ts.close()
+    words
+  }
+
+  def getWordsFrequency(content: String): List[(String, Int)] = {
+    //    countFrequency(getWords(content))
+    getWords(content).groupBy(x => x).map(y => (y._1, y._2.length)).toList
+  }
+
+  def getWordsFrequencyFromFile(filePath: String): List[(String, Int)] = {
+    //    countFrequency(getWords(content))
+    getWordsFromFile(filePath).groupBy(x => x).map(y => (y._1, y._2.length)).toList
   }
 
   def countFrequency(words: Array[String]): List[(String, Int)] = {
@@ -51,6 +67,7 @@ object LuceneUtils {
 
     override def hasNext: Boolean = ts.incrementToken()
   }
+
 }
 
 

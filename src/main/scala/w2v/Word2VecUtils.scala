@@ -17,7 +17,7 @@ object Word2VecUtils {
 
   def main(args: Array[String]) = {
 
-    val filePath = new File("data\\test\\cp.txt").getAbsolutePath
+    val filePath = new File("data\\desc.txt").getAbsolutePath
     val iter = new BasicLineIterator(filePath)
 
     val t = new DefaultTokenizerFactory
