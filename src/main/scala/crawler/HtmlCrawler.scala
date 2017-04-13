@@ -77,27 +77,28 @@ class HtmlCrawler extends Serializable {
   def getContent(ele: DomElement, attr: String) = if (attr.isEmpty) ele.asText() else ele.getAttribute(attr)
 
   def getBaiduRes(kw: String): Array[String] = {
-    val page: HtmlPage = webClient.getPage("https://www.baidu.com/s?wd=" + kw)
-    page.getByXPath("//B[@class='c-showurl']").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+    val kw2 = kw.replaceAll(" ", "+")
+    val page: HtmlPage = webClient.getPage(s"https://www.baidu.com/s?wd=$kw2&sl_lang=en&rsv_srlang=en&rsv_rq=en")
+    page.getByXPath("//h3[@class='t c-title-en']//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
   }
 
   def getYahooRes(kw: String): Array[String] = {
-    val page: HtmlPage = webClient.getPage("https://sg.search.yahoo.com/search?p=" + kw)
-    page.getByXPath("//a[@class=' td-u']").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+    val kw2 = kw.replaceAll(" ", "+")
+    val page: HtmlPage = webClient.getPage(s"https://sg.search.yahoo.com/search?p=$kw2")
+    page.getByXPath("//div[@class='compTitle']//h3[@class='title']//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
   }
 
   def getBingRes(kw: String): Array[String] = {
     val kw2 = kw.replaceAll(" ", "+")
     val page: HtmlPage = webClient.getPage(s"http://global.bing.com/search?q=$kw2&go=Search&qs=bs&setmkt=en-us&setlang=en-us&FORM=SECNEN")
-
-    //    val page: HtmlPage = webClient.getPage(s"http://www.bing.com/search?q=$kw&go=Search&qs=bs&form=QBRE")
-
-
-    println(s"bingUrl: http://bing.com/search?q=$kw&intlF=1&FORM=TIPEN1")
     page.getByXPath("//li[@class='b_algo']//h2//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
-    //    page.getElementsByTagName("cite").toArray().map(_.asInstanceOf[HtmlCitation].asText())
   }
 
+  def getGoogleRes(kw: String): Array[String] = {
+    val kw2 = kw.replaceAll(" ", "+")
+    val page: HtmlPage = webClient.getPage(s"https://www.google.com.tw/search?q=$kw2&lr=lang_en")
+    page.getByXPath("//div[@class='rc']//h3//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+  }
 
   def crawlPage(url: String): String = {
     println(s"crawling page: $url")

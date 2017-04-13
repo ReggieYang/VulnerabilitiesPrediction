@@ -89,41 +89,38 @@ class SummaryExtraction(conn: Connection) {
     t.setTokenPreProcessor(new CommonPreprocessor())
     val vec = WordVectorSerializer.readParagraphVectors(pvPath)
     vec.setTokenizerFactory(t)
-    val dropTable = s"DROP TABLE IF EXISTS `${summaryTableName}_vector`;"
-    val createTable = s"CREATE TABLE `${summaryTableName}_vector` (`id` int(11) NOT NULL AUTO_INCREMENT," +
+    val createTable = s"CREATE TABLE IF NOT EXISTS `${summaryTableName}_vector` (`id` int(11) NOT NULL AUTO_INCREMENT," +
       "`product` varchar(255) DEFAULT NULL, `vector` mediumtext,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8"
     val stmt2 = conn.createStatement()
-    stmt2.executeUpdate(dropTable)
     stmt2.executeUpdate(createTable)
 
-    val sql3 = s"select product, res from $summaryTableName where id <= 20"
+    val sql3 = s"select id, product, res from $summaryTableName"
     val stmt = conn.createStatement()
     conn.setAutoCommit(false)
     val cmd = conn.prepareStatement(s"insert into ${summaryTableName}_vector(product, vector) values(?,?)")
     val rs = stmt.executeQuery(sql3)
-    var i = 0
     println("Begin to infer vectors")
     while (rs.next()) {
       val product = rs.getString("product")
       val summary = rs.getString("res")
-      i = i + 1
-      println(s"index: $i, product: $product")
-      val vector = vec.inferVector(summary).toString.drop(1).dropRight(1)
-      println(s"vector: $vector")
-      cmd.setString(1, product)
-      cmd.setString(2, vector)
-      cmd.addBatch()
-
-      if (i % 100 == 0) {
-        cmd.executeBatch()
-        conn.commit()
+      val id = rs.getString("id")
+      println(s"index: $id, product: $product")
+      try {
+        if (summary != null && summary.length > 0) {
+          val vector = vec.inferVector(summary).toString.drop(1).dropRight(1)
+          println(s"vector: $vector")
+          cmd.setString(1, product)
+          cmd.setString(2, vector)
+          cmd.addBatch()
+          cmd.executeBatch()
+          conn.commit()
+        }
+      }
+      catch {
+        case e: Throwable => e.printStackTrace()
       }
     }
-
-    cmd.executeBatch()
-    conn.commit()
     cmd.close()
-
   }
 
   def featureByImpactScore() = {

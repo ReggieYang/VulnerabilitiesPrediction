@@ -20,7 +20,7 @@ class RawDataProcess {
     val nd = new NvdItemDao(conn)
     yearList.foreach(year => {
       val filePath = "data\\rawData\\nvdcve-2.0-" + year + ".xml"
-      val items = getItems(filePath)
+      val items = getNvdItems(filePath)
       nd.saveFeature(items)
       //      nd.saveItem(items)
     })
@@ -65,7 +65,7 @@ class RawDataProcess {
   }
 
 
-  def getItems(filePath: String): Array[NvdItem] = {
+  def getNvdItems(filePath: String): Array[NvdItem] = {
     val reader = new SAXReader()
     val document = reader.read(new File(filePath))
     val node = document.getRootElement
@@ -117,7 +117,7 @@ class RawDataProcess {
 
   def writeSummary(rdp: RawDataProcess) = {
     Range(2002, 2018).foreach(year => {
-      rdp.getItems(s"data\\rawData\\nvdcve-2.0-$year.xml").foreach(item => {
+      rdp.getNvdItems(s"data\\rawData\\nvdcve-2.0-$year.xml").foreach(item => {
         FileUtils.write(new File("E:\\secdata\\summaryById\\" + item.id), item.summary)
       })
     })

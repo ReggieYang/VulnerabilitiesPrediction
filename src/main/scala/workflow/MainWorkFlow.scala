@@ -23,20 +23,24 @@ class MainWorkFlow(conn: Connection) {
   def run() = {
     //Summary has been saved in db
     val se = new SummaryExtraction(conn)
-    val summaryTableName = "search_res_attacker"
-    se.writeVectors(summaryTableName)
-    logger.info(s"Vectors are saved in table: ${summaryTableName}_vector")
+    //    val summaryTableName = "search_res_attacker"
 
-    //    val mt = new ModelTrain()
-    //    Array("category", "impact", "amount").foreach(feature => {
-    //      getTrainData(feature, summaryTableName + "_vector")
-    //      mt.crossValidate2(feature)
-    //    })
+    Array("search_res_cross_denial").foreach(summaryTableName => {
+      se.writeVectors(summaryTableName)
+      logger.info(s"Vectors are saved in table: ${summaryTableName}_vector")
+
+      val remark = summaryTableName.split("_").drop(2).mkString("_")
+      val mt = new ModelTrain()
+      Array("category", "impact", "amount").foreach(feature => {
+        getTrainData(feature, summaryTableName + "_vector", remark = remark)
+        mt.crossValidate2(feature, remark = remark)
+      })
+    })
 
 
   }
 
-  def getTrainData(feature: String, vectorTableName: String) = {
+  def getTrainData(feature: String, vectorTableName: String, remark: String = "") = {
     val sql = s"select CONCAT_WS(',', srv.vector, v.$feature) as output " +
       s"FROM $vectorTableName srv, vul_$feature v WHERE srv.product = v.`name`"
     logger.info(sql)
@@ -50,7 +54,7 @@ class MainWorkFlow(conn: Connection) {
       atts.add(dim)
     })
 
-    val outputPath = s"E:\\secdata\\wekaData\\train2\\$feature.arff"
+    val outputPath = s"E:\\secdata\\wekaData\\train2\\${feature}_$remark.arff"
 
     if (feature != "category") {
       logger.info(s"Processing $feature")

@@ -41,11 +41,11 @@ class ModelTrain {
     oos.close()
   }
 
-  def crossValidate2(output: String, emptyCls: Classifier = new RandomForest) = {
+  def crossValidate2(output: String, emptyCls: Classifier = new RandomForest, remark:String = "") = {
     val algorithmName = emptyCls.getClass.getSimpleName
     val modelType = if (output == "category") "classification" else "regression"
 
-    val trainDataPath = s"E:\\secdata\\wekaData\\train2\\$output.arff"
+    val trainDataPath = s"E:\\secdata\\wekaData\\train2\\${output}_$remark.arff"
     val cls = emptyCls
     val trainData = DataSource.read(trainDataPath)
     val classIndex = trainData.numAttributes() - 1
@@ -57,7 +57,7 @@ class ModelTrain {
     logger.info("Start training...")
     finalClassifier.buildClassifier(trainData)
     logger.info("Start saving classifier...")
-    SerializationHelper.write(s"E:\\secdata\\wekaData\\model2\\${output}_$algorithmName.cls", finalClassifier)
+    SerializationHelper.write(s"E:\\secdata\\wekaData\\model2\\${output}_${algorithmName}_$remark.cls", finalClassifier)
     //Train and save the model
 
     val folds = 10
@@ -69,7 +69,7 @@ class ModelTrain {
     val eval = new Evaluation(randData)
     logger.info("Start evaluating...")
 
-    val pw = new PrintWriter(s"E:\\secdata\\wekaData\\evaluation2\\accuracy_measure_${output}_$algorithmName.txt")
+    val pw = new PrintWriter(s"E:\\secdata\\wekaData\\evaluation2\\accuracy_measure_${output}_${algorithmName}_$remark.txt")
 
     if (modelType == "classification") {
       val fRanks = Range(0, folds).map(i => {
@@ -82,7 +82,7 @@ class ModelTrain {
         logger.info(s"FRank$i: " + fRank)
         fRank
       })
-      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation2\\evaluation_${output}_$algorithmName.eval", eval)
+      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation2\\evaluation_${output}_${algorithmName}_$remark.eval", eval)
       logger.info(eval.toSummaryString())
       pw.println("Average FRank: " + fRanks.sum / fRanks.size)
       logger.info("Average FRank: " + fRanks.sum / fRanks.size)
@@ -102,7 +102,7 @@ class ModelTrain {
         logger.info(s"CRE$i: " + cre2)
         (cre, cre2)
       })
-      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation2\\evaluation_${output}_$algorithmName.eval", eval)
+      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation2\\evaluation_${output}_${algorithmName}_$remark.eval", eval)
       logger.info(eval.toSummaryString())
       val ccres = CREs.map(_._1)
       val cres = CREs.map(_._2)
