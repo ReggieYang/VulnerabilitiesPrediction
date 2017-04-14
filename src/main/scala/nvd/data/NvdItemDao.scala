@@ -33,13 +33,22 @@ case class NvdItemDao(conn: Connection) {
 
   }
 
-  def saveSearchRes(products: Array[ProductSearch]) = {
+  def saveSearchRes(products: Array[ProductSearch], searchEngine: String = "") = {
+    val createTable = s"CREATE TABLE IF NOT EXISTS `product_search_$searchEngine` (`id` int(11) NOT NULL AUTO_INCREMENT," +
+      "`product` varchar(255) DEFAULT NULL, fw varchar(255), `url` mediumtext,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8"
+    val stmt2 = conn.createStatement()
+    stmt2.executeUpdate(createTable)
+    println("Table created")
+
     conn.setAutoCommit(false)
-    val cmd = conn.prepareStatement("insert into product_search(product, res) values(?,?)")
+    val cmd = conn.prepareStatement(s"insert into product_search_$searchEngine(product, fw, url) values(?,?,?)")
     var i = 0
     products.foreach(res => {
-      cmd.setString(1, res.product)
-      cmd.setString(2, res.res.mkString("\t"))
+      val product = res.product.split("\\+")(0)
+      val fw = res.product.split("\\+")(1)
+      cmd.setString(1, product)
+      cmd.setString(2, fw)
+      cmd.setString(3, res.res.mkString("\t"))
       cmd.addBatch()
       i = i + 1
 
@@ -125,12 +134,12 @@ case class NvdItemDao(conn: Connection) {
       cmd.setString(1, res.url)
       cmd.setString(2, res.res)
       cmd.addBatch()
-//      i = i + 1
-//
-//      if (i % 1 == 0) {
-//        cmd.executeBatch()
-//        conn.commit()
-//      }
+      //      i = i + 1
+      //
+      //      if (i % 1 == 0) {
+      //        cmd.executeBatch()
+      //        conn.commit()
+      //      }
     })
 
     cmd.executeBatch()
