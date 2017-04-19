@@ -46,7 +46,11 @@ import workflow.MainWorkFlow
   */
 object Test {
 
-  System.setProperty("hadoop.home.dir", "c:\\winutil\\")
+  System.setProperty("hadoop.home.dir", "/Users/kaimaoyang/Applications/winutil")
+  System.setProperty("SPARK_LOCAL_IP", "127.0.0.1")
+  System.setProperty("SPARK_MASTER_IP", "127.0.0.1")
+
+
   lazy val conf = new SparkConf().
     setMaster("local[10]").
     setAppName("My App").
@@ -59,99 +63,25 @@ object Test {
 
   def main(args: Array[String]) = {
     val conn = DBConnection.getConnection
-    //    Array("impact", "amount", "category").foreach(WekaUtils.genArff(conn, _))
-    //    val rdp = new RawDataProcess
-    //    val data = rdp.getSearchSite2(conn)
-    //    rdp.writeDesctoFile(conn)
-    //    val se = new SummaryExtraction(conn)
-    //    se.writeVectors("search_res3")
+//    val mt = new ModelTrain
+    //    Array("impact", "category", "amount").foreach(indicator => {
+    //      mt.trainModel(s"data/wekaData/train2/${indicator}_cve_crafted_vulnerability.arff", new RandomForest,
+    //        s"data/wekaData/model2/${indicator}_model.cls", 100)
+    //    })
 
     val mw = new MainWorkFlow(conn)
-    mw.run()
-
+    mw.eval("acrobat+9.1")
     conn.close()
-
-    //    search2(data)
-    //    val mt = new ModelTrain
-
-    //    val words = LuceneUtils.getWordsFrequencyFromFile("data\\summary\\part-00000")
-    //
-    //    logger.info(words.mkString("\n"))
-    //    val wordsRDD = sc.parallelize(words).repartition(1).sortBy(0 - _._2)
-    //    wordsRDD.saveAsTextFile("data\\summaryWordCount")
-    //    mt.preprocess("E:\\secdata\\wekaData\\train\\impact.arff", new StringToNominal)
-
-    //    val mlpAmount = SerializationHelper.read("E:\\secdata\\wekaData\\model\\cv_amount_mpp").asInstanceOf[MultilayerPerceptron]
-    //    //    val mlpAmount = SerializationHelper.read("E:\\secdata\\wekaData\\model\\amount_mlp.cls").asInstanceOf[MultilayerPerceptron]
-    //    val testData2 = DataSource.read("E:\\secdata\\wekaData\\train\\amount_train.arff")
-    //    testData2.setClassIndex(testData2.numAttributes() - 1)
-    //    logger.info("CRE: " + WekaUtils.calCRE(mlpAmount, testData2))
-    //
-    //    val mlpImpact = SerializationHelper.read("E:\\secdata\\wekaData\\model\\impact_MultilayerPerceptron.cls").asInstanceOf[MultilayerPerceptron]
-    //    val testData = DataSource.read("E:\\secdata\\wekaData\\train\\impact_MultilayerPerceptron.arff")
-    //    testData.setClassIndex(testData.numAttributes() - 1)
-    //
-    //    val mccCategory = SerializationHelper.read("E:\\secdata\\wekaData\\model\\category_mcc.cls").asInstanceOf[MultiClassClassifier]
-    //    val testData3 = DataSource.read("E:\\secdata\\wekaData\\train\\category_classification.arff")
-    //    testData3.setClassIndex(testData3.numAttributes() - 1)
-    //    logger.info("FRank:" + WekaUtils.calFRank(mccCategory, testData3))
-
-    //    Range(0, testData2.size()).foreach(index => {
-    //      val pred = mlpAmount.classifyInstance(testData2.get(index))
-    //      val actual = testData2.get(index).classValue()
-    //      if (actual > 100d)
-    //        println(s"Actual: $actual\tPredicted: $pred")
-    //    })
-
-    //    logger.info("FRank: " + WekaUtils.calFRank(mccCategory, testData3))
-    //    logger.info("Corrected Relative Error: " + WekaUtils.calCRE(mlpImpact, testData))
-    //    logger.info("Relative Error: " + calCRE(mlpAmount, testData2))
-
-    //    val eval = new Evaluation(testData)
-    //    eval.evaluateModel(mlpAmount, testData)
-    //    logger.info(eval.toSummaryString())
-    //    mt.crossValidate("amount", new RandomForest(), "regression")
-
-
-    //    W2VRNN.trainModel("D:\\Documents\\glove.6B\\glove.6B.100d.txt", "D:\\Documents\\Downloads\\aclImdb_v2")
-
-    //    W2VRNN.makeParVec()
-    //    W2VRNN.parInfer()
-
-    //    val trainData = DataSource.read("E:\\secdata\\wekaData\\train\\category_nominal.arff")
-    //
-    //    val cls = new MultiClassClassifier
-    //    val folds = 10
-    //    val rand = new Random(1)
-    //    trainData.setClassIndex(trainData.numAttributes() - 1)
-    //    val randData = new Instances(trainData)
-    //    logger.info("random seed: " + rand)
-    //    randData.randomize(rand)
-    //    randData.stratify(folds)
-    //    Range(0, 1).foreach(i => {
-    //      val train = randData.trainCV(folds, i)
-    //      val test = randData.testCV(folds, i)
-    //      val eval = new Evaluation(train)
-    //      cls.buildClassifier(train)
-    //      SerializationHelper.write(s"E:\\secdata\\wekaData\\model\\cv_category_mlc", cls)
-    //      eval.evaluateModel(cls, test)
-    //      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation\\eval_category_mlc", eval)
-    //      logger.info(eval.toSummaryString())
-    //      logger.info("CRE: " + WekaUtils.calFRank(cls, test))
-    //    })
-
 
   }
 
 
   def search() = {
 
-    //    val rdd2: RDD[String] = sc.parallelize(p)
-    //    rdd2.repartition(1).saveAsTextFile("data\\product_version")
+    val productRDD = sc.textFile("data/vulAmount/part-00000")
+    //    val productRDD = scala.io.Source.fromFile("data/vulAmount/product").getLines().toArray
 
-    val productRDD = sc.textFile("data\\vulAmount\\part-00000")
-
-    productRDD.foreachPartition(it => {
+    productRDD.sortBy(x => x).foreachPartition(it => {
       val conn = DBConnection.getConnection
       val hc = new HtmlCrawler
       val nd = new NvdItemDao(conn)
@@ -164,9 +94,9 @@ object Test {
         i = i + 1
         println(s"processing product: $product")
 
-        val res = featureWords.flatMap(fw => {
+        val res = Array("cve", "cross").flatMap(fw => {
           val kw = s"$product+$fw"
-          val bingRes = hc.getBingRes(kw)
+          val bingRes = hc.getYahooRes(kw)
           println("product: " + kw + " bingRes: " + bingRes.mkString(","))
           bingRes.map(search => ProductSearch(kw, Array(search)))
         })
@@ -178,14 +108,50 @@ object Test {
         tempPs = tempPs ++ res
 
         //        if (i % 1 == 0) {
-        nd.saveSearchRes(res)
+        nd.saveSearchRes(res, "yahoo")
         //          tempPs = Array[ProductSearch]()
         //        }
       })
-      nd.saveSearchRes(tempPs)
+      //      nd.saveSearchRes(res, "baidu")
+
       conn.close()
     })
   }
+
+
+  def search3(engine: String) = {
+    val productRDD = scala.io.Source.fromFile("data/vulAmount/product").getLines().toArray.drop(33)
+
+    val conn = DBConnection.getConnection
+    val hc = new HtmlCrawler
+    val nd = new NvdItemDao(conn)
+    hc.init()
+    productRDD.sortBy(x => x).foreach(product => {
+      println(s"processing product: $product")
+
+      val res = Array("cve").flatMap(fw => {
+        val kw = s"$product+$fw"
+
+        val bingRes: Array[String] = engine match {
+          case "google" => hc.getGoogleRes(kw)
+          case "yahoo" => hc.getYahooRes(kw)
+          case "baidu" => hc.getBaiduRes(kw)
+        }
+
+        logger.info("sites:" + bingRes.mkString(","))
+
+        val searchRes = bingRes.map(url => hc.crawlPage(url))
+
+        //        println("product: " + kw + " bingRes: " + bingRes.mkString(","))
+        searchRes.map(search => ProductSearch(kw, Array(search)))
+      })
+
+      nd.saveSearchRes(res, engine)
+    })
+    conn.close()
+
+  }
+
 
   def w2v(corpus: String) = {
     val iter: SentenceIterator = new LineSentenceIterator(new File(corpus))
