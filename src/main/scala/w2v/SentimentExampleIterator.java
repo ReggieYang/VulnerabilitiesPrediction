@@ -20,6 +20,7 @@ import org.nd4j.linalg.indexing.NDArrayIndex;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,6 +102,8 @@ public class SentimentExampleIterator implements DataSetIterator {
             }
             cursor++;
         }
+        //reviews: Array of reviews, positive/negative alternated
+        //positive: true/false
 
         //Second: tokenize reviews and filter out unknown words
         List<List<String>> allTokens = new ArrayList<>(reviews.size());
@@ -122,10 +125,12 @@ public class SentimentExampleIterator implements DataSetIterator {
         //Here: we have reviews.size() examples of varying lengths
         INDArray features = Nd4j.create(reviews.size(), vectorSize, maxLength);
         INDArray labels = Nd4j.create(reviews.size(), 2, maxLength);    //Two labels: positive or negative
+
         //Because we are dealing with reviews of different lengths and only one output at the final time step: use padding arrays
         //Mask arrays contain 1 if data is present at that time step for that example, or 0 if data is just padding
         INDArray featuresMask = Nd4j.zeros(reviews.size(), maxLength);
         INDArray labelsMask = Nd4j.zeros(reviews.size(), maxLength);
+
 
         int[] temp = new int[2];
         for (int i = 0; i < reviews.size(); i++) {
@@ -146,6 +151,7 @@ public class SentimentExampleIterator implements DataSetIterator {
             labels.putScalar(new int[]{i, idx, lastIdx - 1}, 1.0);   //Set label: [0,1] for negative, [1,0] for positive
             labelsMask.putScalar(new int[]{i, lastIdx - 1}, 1.0);   //Specify that an output exists at the final time step for this example
         }
+
 
         return new DataSet(features, labels, featuresMask, labelsMask);
     }

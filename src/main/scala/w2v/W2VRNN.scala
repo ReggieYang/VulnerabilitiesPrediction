@@ -1,6 +1,8 @@
 package w2v
 
 import java.io.{File, PrintWriter}
+import java.util
+import java.util.List
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -52,7 +54,7 @@ object W2VRNN {
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def trainModel(word2VecPath: String, dataPath: String) = {
-    val batchSize = 1 //Number of examples in each minibatch
+    val batchSize = 50 //Number of examples in each minibatch
     val vectorSize = 100 //Size of the word vectors. 300 in the Google News model
     val nEpochs = 1 //Number of epochs (full passes of training data) to train on
     val truncateReviewsToLength = 256 //Truncate reviews with length (# words) greater than this
@@ -168,8 +170,8 @@ object W2VRNN {
   }
 
   def t2v(word2VecPath: String, dataPath: String) = {
-    val batchSize = 64 //Number of examples in each minibatch
-    val vectorSize = 100 //Size of the word vectors. 300 in the Google News model
+    val batchSize = 1 //Number of examples in each minibatch
+    val vectorSize = 50 //Size of the word vectors. 300 in the Google News model
     val nEpochs = 1 //Number of epochs (full passes of training data) to train on
     val truncateReviewsToLength = 256 //Truncate reviews with length (# words) greater than this
 
@@ -182,10 +184,9 @@ object W2VRNN {
       .list()
       .layer(0, new GravesLSTM.Builder().nIn(vectorSize).nOut(256)
         .activation(Activation.TANH).build())
-      //      .layer(1, new RnnOutputLayer.Builder().activation(Activation.SOFTMAX)
-      //        .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(256).nOut(2).build())
+      .layer(1, new RnnOutputLayer.Builder().activation(Activation.SOFTMAX)
+        .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(256).nOut(2).build())
       .pretrain(false).backprop(true).build()
-
 
     val net = new MultiLayerNetwork(conf)
     net.init()
@@ -195,7 +196,9 @@ object W2VRNN {
     val train = new SentimentExampleIterator(dataPath, wordVectors, batchSize, truncateReviewsToLength, true)
     val test = new SentimentExampleIterator(dataPath, wordVectors, batchSize, truncateReviewsToLength, false)
 
-    logger.info("Starting training")
+    logger.info(s"data path:$dataPath")
+
+    logger.info("Start training")
 
     Range(0, nEpochs).foreach(i => {
       net.fit(train)
@@ -206,12 +209,18 @@ object W2VRNN {
       while (test.hasNext) {
         val t = test.next()
         val features = t.getFeatureMatrix
-        val lables = t.getLabels
+        val labels = t.getLabels
         val inMask = t.getFeaturesMaskArray
         val outMask = t.getLabelsMaskArray
         val predicted = net.output(features, false, inMask, outMask)
 
-        evaluation.evalTimeSeries(lables, predicted, outMask)
+        val activations = net.feedForward(features, false)
+        logger.info("layer1:" + activations.get(0))
+        logger.info("layer2:" + activations.get(1))
+
+        //        logger.info("pre:" + predicted)
+
+        evaluation.evalTimeSeries(labels, predicted, outMask)
       }
 
       ModelSerializer.writeModel(net, "D:\\workspace\\VulnerabilitiesPrediction\\data\\model1.md", true)

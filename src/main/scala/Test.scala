@@ -63,14 +63,16 @@ object Test {
 
   def main(args: Array[String]) = {
     val conn = DBConnection.getConnection
-//    val mt = new ModelTrain
+    //    val mt = new ModelTrain
     //    Array("impact", "category", "amount").foreach(indicator => {
     //      mt.trainModel(s"data/wekaData/train2/${indicator}_cve_crafted_vulnerability.arff", new RandomForest,
     //        s"data/wekaData/model2/${indicator}_model.cls", 100)
     //    })
 
-    val mw = new MainWorkFlow(conn)
-    mw.eval("acrobat+9.1")
+    W2VRNN.t2v("/Users/kaimaoyang/Documents/machine-learning resources/glove.6B/glove.6B.50d.txt"
+      , "/Users/kaimaoyang/Downloads/dl4j-data2")
+    //    val mw = new MainWorkFlow(conn)
+    //    mw.eval("acrobat+9.1")
     conn.close()
 
   }
@@ -152,36 +154,6 @@ object Test {
 
   }
 
-
-  def w2v(corpus: String) = {
-    val iter: SentenceIterator = new LineSentenceIterator(new File(corpus))
-    val t: TokenizerFactory = new DefaultTokenizerFactory
-    t.setTokenPreProcessor(new CommonPreprocessor)
-    val vec = new Word2Vec.Builder()
-      .minWordFrequency(5)
-      .iterations(1)
-      .layerSize(100)
-      .seed(42)
-      .windowSize(5)
-      .iterate(iter)
-      .tokenizerFactory(t)
-      .build()
-
-    vec.fit()
-    val vectors = new ParagraphVectors.Builder()
-      .useExistingWordVectors(vec)
-      .build()
-    // we have to define tokenizer here, because restored model has no idea about it
-
-    val inferredVectorA = vectors.inferVector("This is my world .")
-    //    WordVectorSerializer.writeWordVectors(vec, s"${corpus}_vec")
-    //    WordVectorSerializer.writeFullModel(vec, s"${corpus}_model")
-    //    val lst3 = vec.wordsNearest("man", 10)
-    //    println("nearest: " + lst3)
-    println("This is my world: " + inferredVectorA.toString)
-
-  }
-
   def search2(data: Array[Array[String]]) = {
     val siteRDD = sc.parallelize(data)
 
@@ -211,19 +183,6 @@ object Test {
       //      nd.saveSearchSiteRes(tempPs)
       conn.close()
     })
-  }
-
-  def weka() = {
-    //    val p3 = DataSource.read("D:\\Program Files\\Weka-3-8\\data\\player3.arff")
-    //    p3.setClassIndex(4)
-    //    val x = new LinearRegression
-    //    x.buildClassifier(p3)
-    //    val res = WekaUtils.testModel(x, "D:\\Program Files\\Weka-3-8\\data\\player4.arff", 4)
-    //    println(res.toString)
-    //    SerializationHelper.write("data\\weka\\lr1.md", x)
-    //    val lr1 = SerializationHelper.read("data\\weka\\lr1.md").asInstanceOf[Classifier]
-    //    val res2 = WekaUtils.testModel(lr1, "D:\\Program Files\\Weka-3-8\\data\\player4.arff", 4)
-    //    println(res2.toString)
   }
 
   def crossValidate() = {
