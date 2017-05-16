@@ -23,16 +23,17 @@ class HtmlCrawler extends Serializable {
     LogFactory.getFactory.setAttribute("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog")
     java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF)
     java.util.logging.Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF)
-    siteXpathMap = getSiteXpathMap
+    //    siteXpathMap = getSiteXpathMap
     webClient = new WebClient()
     webClient.getOptions.setCssEnabled(false)
     webClient.getOptions.setJavaScriptEnabled(false)
-    webClient.getOptions.getProxyConfig.setProxyPort(1080)
+    webClient.getOptions.getProxyConfig.setSocksProxy(true)
     webClient.getOptions.getProxyConfig.setProxyHost("127.0.0.1")
+    webClient.getOptions.getProxyConfig.setProxyPort(1080)
 
   }
 
-  def close() = webClient.closeAllWindows()
+  def close() = webClient.close()
 
 
   def getSiteXpathMap: Map[String, String] = {
@@ -61,7 +62,7 @@ class HtmlCrawler extends Serializable {
         val newXpath = xpath.split("&")(0)
         val attribute = if (xpath.contains("&")) xpath.split("&")(1) else ""
 
-        if ((page == null) || page.getByXPath(newXpath).isEmpty) url
+        if (page == null) url
         else {
           val des = page.getByXPath(newXpath).get(0)
           des match {
@@ -84,8 +85,8 @@ class HtmlCrawler extends Serializable {
 
   def getYahooRes(kw: String): Array[String] = {
     val kw2 = kw.replaceAll(" ", "+")
-    val page: HtmlPage = webClient.getPage(s"https://sg.search.yahoo.com/search?p=$kw2")
-    page.getByXPath("//div[@class='compTitle']//h3[@class='title']//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
+    val page: HtmlPage = webClient.getPage(s"https://search.yahoo.com/search?p=$kw2")
+    page.getByXPath("//h3[@class='title']//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
   }
 
   def getBingRes(kw: String): Array[String] = {
@@ -96,7 +97,7 @@ class HtmlCrawler extends Serializable {
 
   def getGoogleRes(kw: String): Array[String] = {
     val kw2 = kw.replaceAll(" ", "+")
-    val page: HtmlPage = webClient.getPage(s"https://www.google.com.tw/search?q=$kw2&lr=lang_en")
+    val page: HtmlPage = webClient.getPage(s"https://www.google.com/search?q=$kw2&lr=lang_en")
     page.getByXPath("//div[@class='rc']//h3//a").toArray().map(_.asInstanceOf[HtmlAnchor].getHrefAttribute)
   }
 
@@ -110,7 +111,7 @@ class HtmlCrawler extends Serializable {
     }
     catch {
       case e: Throwable => {
-        webClient.closeAllWindows()
+        webClient.close()
         init()
         e.printStackTrace()
         println("catch an exception")
