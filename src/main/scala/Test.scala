@@ -24,6 +24,7 @@ import org.deeplearning4j.text.tokenization.tokenizerfactory.{DefaultTokenizerFa
 import org.deeplearning4j.util.ModelSerializer
 import org.jsoup.Jsoup
 import org.slf4j.LoggerFactory
+import rnn.{RnnData, RnnUtils, RnnWorkFlow}
 
 import collection.JavaConverters._
 import w2v.{W2VRNN, Word2VecUtils}
@@ -69,8 +70,15 @@ object Test {
     //        s"data/wekaData/model2/${indicator}_model.cls", 100)
     //    })
 
-    W2VRNN.t2v("/Users/kaimaoyang/Documents/machine-learning resources/glove.6B/glove.6B.50d.txt"
-      , "/Users/kaimaoyang/Downloads/dl4j-data2")
+
+    //    W2VRNN.t2v("data/word2vec/summary.pv", "/Users/kaimaoyang/Downloads/dl4j-data2")
+
+    val rwf = new RnnWorkFlow("data/word2vec/summary.pv")
+    rwf.trainModel()
+
+
+    //        W2VRNN.t2v("/Users/kaimaoyang/Documents/machine-learning resources/glove.6B/glove.6B.50d.txt"
+    //          , "/Users/kaimaoyang/Downloads/dl4j-data2")
     //    val mw = new MainWorkFlow(conn)
     //    mw.eval("acrobat+9.1")
     conn.close()
