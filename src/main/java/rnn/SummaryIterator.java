@@ -1,4 +1,32 @@
-package w2v;
+package rnn;
+
+/**
+ * Created by kaimaoyang on 2017/5/11.
+ */
+
+import nvd.data.DBConnection;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
+import org.deeplearning4j.text.tokenization.tokenizer.preprocessor.CommonPreprocessor;
+import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory;
+import org.deeplearning4j.text.tokenization.tokenizerfactory.TokenizerFactory;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.dataset.api.DataSetPreProcessor;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.indexing.INDArrayIndex;
+import org.nd4j.linalg.indexing.NDArrayIndex;
+
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Created by ReggieYang on 2017/3/9.
@@ -36,34 +64,33 @@ import java.util.NoSuchElementException;
  *
  * @author Alex Black
  */
-public class SentimentExampleIterator implements DataSetIterator {
+public class SummaryIterator implements DataSetIterator {
     private final WordVectors wordVectors;
     private final int batchSize;
     private final int vectorSize;
     private final int truncateLength;
+    private final int numOfCategory;
 
-    private int cursor = 0;
-    private final File[] positiveFiles;
-    private final File[] negativeFiles;
+    public int cursor = 0;
+    private final int[] features;
+    private final String[] summaries;
     private final TokenizerFactory tokenizerFactory;
 
-    /**
-     * @param dataDirectory  the directory of the IMDB review data set
-     * @param wordVectors    WordVectors object
-     * @param batchSize      Size of each minibatch for training
-     * @param truncateLength If reviews exceed
-     * @param train          If true: return the training data. If false: return the testing data.
-     */
-    public SentimentExampleIterator(String dataDirectory, WordVectors wordVectors, int batchSize, int truncateLength, boolean train) throws IOException {
+    //    /**
+//     * @param dataDirectory  the directory of the IMDB review data set
+//     * @param wordVectors    WordVectors object
+//     * @param batchSize      Size of each minibatch for training
+//     * @param truncateLength If reviews exceed
+//     * @param train          If true: return the training data. If false: return the testing data.
+//     */
+    public SummaryIterator(WordVectors wordVectors, int batchSize, int truncateLength, String[] summaryList, int[] featureList, int catNum) throws IOException, SQLException {
         this.batchSize = batchSize;
         this.vectorSize = wordVectors.getWordVector(wordVectors.vocab().wordAtIndex(0)).length;
 
+        summaries = summaryList;
+        features = featureList;
 
-        File p = new File(FilenameUtils.concat(dataDirectory, "aclImdb/" + (train ? "train" : "test") + "/pos/") + "/");
-        File n = new File(FilenameUtils.concat(dataDirectory, "aclImdb/" + (train ? "train" : "test") + "/neg/") + "/");
-        positiveFiles = p.listFiles();
-        negativeFiles = n.listFiles();
-
+        numOfCategory = catNum;
         this.wordVectors = wordVectors;
         this.truncateLength = truncateLength;
 
@@ -74,7 +101,7 @@ public class SentimentExampleIterator implements DataSetIterator {
 
     @Override
     public DataSet next(int num) {
-        if (cursor >= positiveFiles.length + negativeFiles.length) throw new NoSuchElementException();
+        if (cursor >= summaries.length) throw new NoSuchElementException();
         try {
             return nextDataSet(num);
         } catch (IOException e) {
@@ -84,31 +111,24 @@ public class SentimentExampleIterator implements DataSetIterator {
 
     private DataSet nextDataSet(int num) throws IOException {
         //First: load reviews to String. Alternate positive and negative reviews
-        List<String> reviews = new ArrayList<>(num);
-        boolean[] positive = new boolean[num];
-        for (int i = 0; i < num && cursor < totalExamples(); i++) {
-            if (cursor % 2 == 0) {
-                //Load positive review
-                int posReviewNumber = cursor / 2;
-                String review = FileUtils.readFileToString(positiveFiles[posReviewNumber]);
-                reviews.add(review);
-                positive[i] = true;
-            } else {
-                //Load negative review
-                int negReviewNumber = cursor / 2;
-                String review = FileUtils.readFileToString(negativeFiles[negReviewNumber]);
-                reviews.add(review);
-                positive[i] = false;
-            }
+        List<String> descs = new ArrayList<>(num);
+        List<Integer> featureCat = new ArrayList<>(num);
+
+        System.out.println("total: " + summaries.length + ", cursor: " + cursor);
+
+        for (int i = 0; i < num && cursor < summaries.length; i++) {
+            descs.add(summaries[cursor]);
+            featureCat.add(features[cursor]);
             cursor++;
         }
+
         //reviews: Array of reviews, positive/negative alternated
         //positive: true/false
 
         //Second: tokenize reviews and filter out unknown words
-        List<List<String>> allTokens = new ArrayList<>(reviews.size());
+        List<List<String>> allTokens = new ArrayList<>(descs.size());
         int maxLength = 0;
-        for (String s : reviews) {
+        for (String s : descs) {
             List<String> tokens = tokenizerFactory.create(s).getTokens();
             List<String> tokensFiltered = new ArrayList<>();
             for (String t : tokens) {
@@ -123,17 +143,17 @@ public class SentimentExampleIterator implements DataSetIterator {
 
         //Create data for training
         //Here: we have reviews.size() examples of varying lengths
-        INDArray features = Nd4j.create(reviews.size(), vectorSize, maxLength);
-        INDArray labels = Nd4j.create(reviews.size(), 2, maxLength);    //Two labels: positive or negative
+        INDArray features = Nd4j.create(descs.size(), vectorSize, maxLength);
+        INDArray labels = Nd4j.create(descs.size(), numOfCategory, maxLength);    //Two labels: positive or negative
 
         //Because we are dealing with reviews of different lengths and only one output at the final time step: use padding arrays
         //Mask arrays contain 1 if data is present at that time step for that example, or 0 if data is just padding
-        INDArray featuresMask = Nd4j.zeros(reviews.size(), maxLength);
-        INDArray labelsMask = Nd4j.zeros(reviews.size(), maxLength);
+        INDArray featuresMask = Nd4j.zeros(descs.size(), maxLength);
+        INDArray labelsMask = Nd4j.zeros(descs.size(), maxLength);
 
 
         int[] temp = new int[2];
-        for (int i = 0; i < reviews.size(); i++) {
+        for (int i = 0; i < descs.size(); i++) {
             List<String> tokens = allTokens.get(i);
             temp[0] = i;
             //Get word vectors for each word in review, and put them in the training data
@@ -146,9 +166,8 @@ public class SentimentExampleIterator implements DataSetIterator {
                 featuresMask.putScalar(temp, 1.0);  //Word is present (not padding) for this example + time step -> 1.0 in features mask
             }
 
-            int idx = (positive[i] ? 0 : 1);
             int lastIdx = Math.min(tokens.size(), maxLength);
-            labels.putScalar(new int[]{i, idx, lastIdx - 1}, 1.0);   //Set label: [0,1] for negative, [1,0] for positive
+            labels.putScalar(new int[]{i, featureCat.get(i), lastIdx - 1}, 1.0);   //Set label: [0,1] for negative, [1,0] for positive
             labelsMask.putScalar(new int[]{i, lastIdx - 1}, 1.0);   //Specify that an output exists at the final time step for this example
         }
 
@@ -158,7 +177,8 @@ public class SentimentExampleIterator implements DataSetIterator {
 
     @Override
     public int totalExamples() {
-        return positiveFiles.length + negativeFiles.length;
+        return summaries.length;
+//        return positiveFiles.length + negativeFiles.length;
     }
 
     @Override
@@ -233,12 +253,12 @@ public class SentimentExampleIterator implements DataSetIterator {
     /**
      * Convenience method for loading review to String
      */
-    public String loadReviewToString(int index) throws IOException {
-        File f;
-        if (index % 2 == 0) f = positiveFiles[index / 2];
-        else f = negativeFiles[index / 2];
-        return FileUtils.readFileToString(f);
-    }
+//    public String loadReviewToString(int index) throws IOException {
+//        File f;
+//        if (index % 2 == 0) f = positiveFiles[index / 2];
+//        else f = negativeFiles[index / 2];
+//        return FileUtils.readFileToString(f);
+//    }
 
     /**
      * Convenience method to get label for review
@@ -286,4 +306,5 @@ public class SentimentExampleIterator implements DataSetIterator {
         return features;
     }
 }
+
 

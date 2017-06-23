@@ -23,29 +23,30 @@ class ModelTrain {
   def preprocess(filePath: String, filter: Filter): String = {
     val testSet = DataSource.read(filePath)
     filter.setInputFormat(testSet)
-    val filteredFilePath = filePath.replaceAll("(.*\\\\)(.*)(\\.arff)", "$1$2_nominal$3")
+    val filteredFilePath = filePath.replaceAll("(.*//)(.*)(/.arff)", "$1$2_nominal$3")
     DataSink.write(filteredFilePath, Filter.useFilter(testSet, filter))
     filteredFilePath
   }
 
-  def modelTrain(filePath: String, cls: Classifier, clsPath: String, classIndex: Int) = {
+  def trainModel(filePath: String, cls: Classifier, clsPath: String, classIndex: Int) = {
     logger.info("Begin training...")
     val instances = DataSource.read(filePath)
     instances.setClassIndex(classIndex)
     cls.buildClassifier(instances)
     logger.info("Training completed. Begin saving...")
-    val oos = new ObjectOutputStream(new FileOutputStream(clsPath))
-    oos.writeObject(cls)
+    SerializationHelper.write(clsPath, cls)
+//    val oos = new ObjectOutputStream(new FileOutputStream(clsPath))
+//    oos.writeObject(cls)
     logger.info("Saving completed.")
-    oos.flush()
-    oos.close()
+//    oos.flush()
+//    oos.close()
   }
 
   def crossValidate2(output: String, emptyCls: Classifier = new RandomForest, remark:String = "") = {
     val algorithmName = emptyCls.getClass.getSimpleName
     val modelType = if (output == "category") "classification" else "regression"
 
-    val trainDataPath = s"E:\\secdata\\wekaData\\train2\\${output}_$remark.arff"
+    val trainDataPath = s"data/wekaData/train2/${output}_$remark.arff"
     val cls = emptyCls
     val trainData = DataSource.read(trainDataPath)
     val classIndex = trainData.numAttributes() - 1
@@ -59,7 +60,7 @@ class ModelTrain {
 
     new RandomForest
     logger.info("Start saving classifier...")
-    SerializationHelper.write(s"E:\\secdata\\wekaData\\model2\\${output}_${algorithmName}_$remark.cls", finalClassifier)
+    SerializationHelper.write(s"data/wekaData/model2/${output}_${algorithmName}_$remark.cls", finalClassifier)
     //Train and save the model
 
     val folds = 10
@@ -71,7 +72,7 @@ class ModelTrain {
     val eval = new Evaluation(randData)
     logger.info("Start evaluating...")
 
-    val pw = new PrintWriter(s"E:\\secdata\\wekaData\\evaluation2\\accuracy_measure_${output}_${algorithmName}_$remark.txt")
+    val pw = new PrintWriter(s"data/wekaData/evaluation2/accuracy_measure_${output}_${algorithmName}_$remark.txt")
 
     if (modelType == "classification") {
       val fRanks = Range(0, folds).map(i => {
@@ -84,7 +85,7 @@ class ModelTrain {
         logger.info(s"FRank$i: " + fRank)
         fRank
       })
-      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation2\\evaluation_${output}_${algorithmName}_$remark.eval", eval)
+      SerializationHelper.write(s"data/wekaData/evaluation2/evaluation_${output}_${algorithmName}_$remark.eval", eval)
       logger.info(eval.toSummaryString())
       pw.println("Average FRank: " + fRanks.sum / fRanks.size)
       logger.info("Average FRank: " + fRanks.sum / fRanks.size)
@@ -104,7 +105,7 @@ class ModelTrain {
         logger.info(s"CRE$i: " + cre2)
         (cre, cre2)
       })
-      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation2\\evaluation_${output}_${algorithmName}_$remark.eval", eval)
+      SerializationHelper.write(s"data/wekaData/evaluation2/evaluation_${output}_${algorithmName}_$remark.eval", eval)
       logger.info(eval.toSummaryString())
       val ccres = CREs.map(_._1)
       val cres = CREs.map(_._2)
@@ -121,14 +122,14 @@ class ModelTrain {
     //    eval.crossValidateModel(cls, trainData, 10, new Random(1))
     //    logger.info(eval.toSummaryString())
     //    logger.info("Saving evaluations...")
-    //    SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation\\evaluation_${output}_$algorithmName.eval", eval)
+    //    SerializationHelper.write(s"data/wekaData/evaluation/evaluation_${output}_$algorithmName.eval", eval)
     //Evaluate the model using cross-validation
   }
 
   def crossValidate(output: String, emptyCls: Classifier = new MultiClassClassifier, modelType: String = "classification") = {
     val algorithmName = emptyCls.getClass.getSimpleName
 
-    val trainDataPath = s"E:\\secdata\\wekaData\\train\\${output}_$modelType.arff"
+    val trainDataPath = s"data/wekaData/train/${output}_$modelType.arff"
     val cls = emptyCls
     val trainData = DataSource.read(trainDataPath)
     val classIndex = trainData.numAttributes() - 1
@@ -140,7 +141,7 @@ class ModelTrain {
     logger.info("Start training...")
     finalClassifier.buildClassifier(trainData)
     logger.info("Start saving classifier...")
-    SerializationHelper.write(s"E:\\secdata\\wekaData\\model\\${output}_$algorithmName.cls", finalClassifier)
+    SerializationHelper.write(s"data/wekaData/model/${output}_$algorithmName.cls", finalClassifier)
     //Train and save the model
 
     val folds = 10
@@ -162,7 +163,7 @@ class ModelTrain {
         logger.info(s"FRank$i: " + fRank)
         fRank
       })
-      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation\\evaluation_${output}_$algorithmName.eval", eval)
+      SerializationHelper.write(s"data/wekaData/evaluation/evaluation_${output}_$algorithmName.eval", eval)
       logger.info(eval.toSummaryString())
       logger.info("FRank: " + fRanks.sum / fRanks.size)
     }
@@ -178,7 +179,7 @@ class ModelTrain {
         logger.info(s"CRE$i: " + cre2)
         (cre, cre2)
       })
-      SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation\\evaluation_${output}_$algorithmName.eval", eval)
+      SerializationHelper.write(s"data/wekaData/evaluation/evaluation_${output}_$algorithmName.eval", eval)
       logger.info(eval.toSummaryString())
       val ccres = CREs.map(_._1)
       val cres = CREs.map(_._2)
@@ -192,7 +193,7 @@ class ModelTrain {
     //    eval.crossValidateModel(cls, trainData, 10, new Random(1))
     //    logger.info(eval.toSummaryString())
     //    logger.info("Saving evaluations...")
-    //    SerializationHelper.write(s"E:\\secdata\\wekaData\\evaluation\\evaluation_${output}_$algorithmName.eval", eval)
+    //    SerializationHelper.write(s"data/wekaData/evaluation/evaluation_${output}_$algorithmName.eval", eval)
     //Evaluate the model using cross-validation
   }
 

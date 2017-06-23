@@ -1,6 +1,8 @@
 package w2v
 
 import java.io.{File, PrintWriter}
+import java.util
+import java.util.List
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -43,6 +45,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.ops.transforms.Transforms
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import rnn.TextImpactIterator
 
 /**
   * Created by ReggieYang on 2017/3/9.
@@ -52,7 +55,7 @@ object W2VRNN {
   lazy val logger = LoggerFactory.getLogger(this.getClass)
 
   def trainModel(word2VecPath: String, dataPath: String) = {
-    val batchSize = 1 //Number of examples in each minibatch
+    val batchSize = 50 //Number of examples in each minibatch
     val vectorSize = 100 //Size of the word vectors. 300 in the Google News model
     val nEpochs = 1 //Number of epochs (full passes of training data) to train on
     val truncateReviewsToLength = 256 //Truncate reviews with length (# words) greater than this
@@ -182,58 +185,68 @@ object W2VRNN {
       .list()
       .layer(0, new GravesLSTM.Builder().nIn(vectorSize).nOut(256)
         .activation(Activation.TANH).build())
-      //      .layer(1, new RnnOutputLayer.Builder().activation(Activation.SOFTMAX)
-      //        .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(256).nOut(2).build())
+      .layer(1, new RnnOutputLayer.Builder().activation(Activation.SOFTMAX)
+        .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(256).nOut(11).build())
       .pretrain(false).backprop(true).build()
-
 
     val net = new MultiLayerNetwork(conf)
     net.init()
     net.setListeners(new ScoreIterationListener(1))
+    val wordVectors = WordVectorSerializer.readParagraphVectors(new File(word2VecPath))
 
-    val wordVectors = WordVectorSerializer.loadStaticModel(new File(word2VecPath))
-    val train = new SentimentExampleIterator(dataPath, wordVectors, batchSize, truncateReviewsToLength, true)
-    val test = new SentimentExampleIterator(dataPath, wordVectors, batchSize, truncateReviewsToLength, false)
+    //    val wordVectors = WordVectorSerializer.loadStaticModel(new File(word2VecPath))
+    val train = new TextImpactIterator(wordVectors, batchSize, truncateReviewsToLength)
+    val test = new TextImpactIterator(wordVectors, batchSize, truncateReviewsToLength)
 
-    logger.info("Starting training")
+    logger.info(s"data path:$dataPath")
+
+    logger.info("Start training")
 
     Range(0, nEpochs).foreach(i => {
       net.fit(train)
       train.reset()
-      logger.info(s"Epoch $i complete. Starting evaluation: ")
 
-      val evaluation = new Evaluation()
-      while (test.hasNext) {
-        val t = test.next()
-        val features = t.getFeatureMatrix
-        val lables = t.getLabels
-        val inMask = t.getFeaturesMaskArray
-        val outMask = t.getLabelsMaskArray
-        val predicted = net.output(features, false, inMask, outMask)
+      ModelSerializer.writeModel(net, "data/word2vec/net1.net", true)
 
-        evaluation.evalTimeSeries(lables, predicted, outMask)
-      }
+      //      logger.info(s"Epoch $i complete. Starting evaluation: ")
+      //
+      //      val evaluation = new Evaluation()
+      //      while (test.hasNext) {
+      //        val t = test.next()
+      //        val features = t.getFeatureMatrix
+      //        val labels = t.getLabels
+      //        val inMask = t.getFeaturesMaskArray
+      //        val outMask = t.getLabelsMaskArray
+      //        val predicted = net.output(features, false, inMask, outMask)
+      //
+      //        val activations = net.feedForward(features, false)
+      //        logger.info("layer1:" + activations.get(0))
+      //        logger.info("layer2:" + activations.get(1))
+      //
+      //        //        logger.info("pre:" + predicted)
+      //
+      //        evaluation.evalTimeSeries(labels, predicted, outMask)
+      //      }
 
-      ModelSerializer.writeModel(net, "D:\\workspace\\VulnerabilitiesPrediction\\data\\model1.md", true)
-
-
-      logger.info(evaluation.stats())
-
-      val firstPositiveReviewFile = new File(FilenameUtils.concat(dataPath, "aclImdb/test/pos/0_10.txt"))
-      val firstPositiveReview = FileUtils.readFileToString(firstPositiveReviewFile)
-
-      val features = test.loadFeaturesFromString(firstPositiveReview, truncateReviewsToLength)
-      val networkOutput = net.output(features)
-      val timeSeriesLength = networkOutput.size(2)
-      val probabilitiesAtLastWord = networkOutput.get(NDArrayIndex.point(0), NDArrayIndex.all(), NDArrayIndex.point(timeSeriesLength - 1))
-
-      logger.info("\n\n-------------------------------")
-      logger.info("First positive review: \n" + firstPositiveReview)
-      logger.info("\n\nProbabilities at last time step:")
-      logger.info("p(positive): " + probabilitiesAtLastWord.getDouble(0))
-      logger.info("p(negative): " + probabilitiesAtLastWord.getDouble(1))
-
-      logger.info("----- Example complete -----")
+      //
+      //
+      //      logger.info(evaluation.stats())
+      //
+      //      val firstPositiveReviewFile = new File(FilenameUtils.concat(dataPath, "aclImdb/test/pos/0_10.txt"))
+      //      val firstPositiveReview = FileUtils.readFileToString(firstPositiveReviewFile)
+      //
+      //      val features = test.loadFeaturesFromString(firstPositiveReview, truncateReviewsToLength)
+      //      val networkOutput = net.output(features)
+      //      val timeSeriesLength = networkOutput.size(2)
+      //      val probabilitiesAtLastWord = networkOutput.get(NDArrayIndex.point(0), NDArrayIndex.all(), NDArrayIndex.point(timeSeriesLength - 1))
+      //
+      //      logger.info("\n\n-------------------------------")
+      //      logger.info("First positive review: \n" + firstPositiveReview)
+      //      logger.info("\n\nProbabilities at last time step:")
+      //      logger.info("p(positive): " + probabilitiesAtLastWord.getDouble(0))
+      //      logger.info("p(negative): " + probabilitiesAtLastWord.getDouble(1))
+      //
+      //      logger.info("----- Example complete -----")
     })
 
   }
