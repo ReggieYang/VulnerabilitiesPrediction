@@ -56,6 +56,8 @@ class ModelTrain {
     val finalClassifier = emptyCls
     logger.info("Start training...")
     finalClassifier.buildClassifier(trainData)
+
+    new RandomForest
     logger.info("Start saving classifier...")
     SerializationHelper.write(s"E:\\secdata\\wekaData\\model2\\${output}_${algorithmName}_$remark.cls", finalClassifier)
     //Train and save the model
