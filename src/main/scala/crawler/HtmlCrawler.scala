@@ -27,9 +27,9 @@ class HtmlCrawler extends Serializable {
     webClient = new WebClient()
     webClient.getOptions.setCssEnabled(false)
     webClient.getOptions.setJavaScriptEnabled(false)
-    webClient.getOptions.getProxyConfig.setSocksProxy(true)
-    webClient.getOptions.getProxyConfig.setProxyHost("127.0.0.1")
-    webClient.getOptions.getProxyConfig.setProxyPort(1080)
+//    webClient.getOptions.getProxyConfig.setSocksProxy(true)
+//    webClient.getOptions.getProxyConfig.setProxyHost("127.0.0.1")
+//    webClient.getOptions.getProxyConfig.setProxyPort(1080)
 
   }
 

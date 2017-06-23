@@ -71,10 +71,15 @@ object Test {
     //    })
 
 
-    //    W2VRNN.t2v("data/word2vec/summary.pv", "/Users/kaimaoyang/Downloads/dl4j-data2")
+    val hc = new HtmlCrawler
+    hc.init()
+    val page: HtmlPage = hc.webClient.getPage("https://forums.adobe.com/thread/753785")
+    println("pageContent: " + page.getBody.asText())
 
-    val rwf = new RnnWorkFlow("data/word2vec/summary.pv")
-    rwf.trainModel()
+    //    W2VRNN.t2v("data/word2vec/summary.pv", "/Users/kaimaoyang/Downloads/dl4j-data2")
+    //
+    //    val rwf = new RnnWorkFlow("data/word2vec/summary.pv")
+    //    rwf.trainModel()
 
 
     //        W2VRNN.t2v("/Users/kaimaoyang/Documents/machine-learning resources/glove.6B/glove.6B.50d.txt"
